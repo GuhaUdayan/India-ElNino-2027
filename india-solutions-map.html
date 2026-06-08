@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>India El Niño 2027 — Suggested Solutions Map</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5}
+.page{display:flex;flex-direction:column;gap:12px;padding:12px}
+#mapcol{position:relative;width:100%}
+#msvg{width:100%;height:auto;display:none;border-radius:10px}
+#loader{width:100%;aspect-ratio:940/820;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:12px;color:#666;background:#C8E8F5;border-radius:10px}
+#errbox{width:100%;aspect-ratio:940/820;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;color:#666;background:#C8E8F5;border-radius:10px;text-align:center;padding:24px}
+.dp{cursor:pointer;stroke:rgba(255,255,255,.28);stroke-width:.4;transition:opacity .08s}
+.dp:hover{stroke:rgba(255,255,255,.95);stroke-width:1;opacity:.75}
+.dp.sel{stroke:#fff;stroke-width:1.6}
+#tip{position:absolute;background:rgba(255,255,255,.97);border:.5px solid rgba(0,0,0,.12);border-radius:10px;padding:10px 13px;pointer-events:none;display:none;z-index:60;min-width:195px;max-width:248px;box-shadow:0 3px 14px rgba(0,0,0,.09)}
+.tip-n{font-size:13px;font-weight:600;color:#111;margin-bottom:1px}
+.tip-s{font-size:9px;color:#888;margin-bottom:6px}
+.tip-dom{font-size:9.5px;padding:2px 8px;border-radius:20px;font-weight:500;display:inline-block;margin-bottom:6px}
+.tip-pills{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px}
+.tip-pill{font-size:9.5px;padding:2px 7px;border-radius:20px;font-weight:500}
+.tip-top{font-size:10px;color:#555;line-height:1.4;font-style:italic}
+.tip-filter{font-size:8.5px;color:#888;margin-top:5px;padding:2px 6px;background:rgba(0,0,0,.04);border-radius:4px}
+#city-tip{position:absolute;background:rgba(255,255,255,.97);border:.5px solid rgba(0,120,80,.25);border-radius:9px;padding:8px 11px;pointer-events:none;display:none;z-index:65;min-width:180px;max-width:225px;box-shadow:0 3px 14px rgba(0,0,0,.12)}
+.ct-n{font-size:12px;font-weight:700;color:#111;margin-bottom:1px}
+.ct-s{font-size:9px;color:#888;margin-bottom:5px}
+.ct-dom{font-size:9.5px;padding:2px 7px;border-radius:20px;font-weight:500;display:inline-block;margin-bottom:5px}
+.ct-note{font-size:9px;color:#555;line-height:1.4;font-style:italic}
+.btm{background:#fff;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden}
+.tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:12px 12px 0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px 9px;border-radius:8px;border:.5px solid #ccc;cursor:pointer;font-family:inherit;background:#f5f5f5;color:#555;transition:all .12s;white-space:normal;word-break:break-word;text-align:center;min-width:0}
+.tab:hover:not(.on){background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);transform:translateY(-1px)}
+.tab.on{border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.tab .ico{font-size:22px;line-height:1;display:block}
+.tab .lbl{font-size:11px;font-weight:500;line-height:1.25;display:block;white-space:normal;word-break:break-word}
+.active-bar{padding:10px 12px 0;border-top:.5px solid #e0e0e0;margin-top:10px}
+.ab-row{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.ab-ew{font-size:8.5px;color:#888;text-transform:uppercase;letter-spacing:.06em}
+.ab-ttl{font-size:12px;font-weight:500;color:#111}
+.ab-filter{font-size:9px;color:#888;font-style:italic;margin-bottom:4px}
+.filter-key{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.fk{display:flex;align-items:center;gap:4px;font-size:8.5px;color:#555}
+.fk-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.tl-anchor{font-size:8.5px;color:#888;background:rgba(0,0,0,.04);border-radius:4px;padding:2px 8px;margin-bottom:6px;display:inline-block}
+.leg-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:0 12px 12px}
+.leg-card{border-radius:8px;padding:8px 8px 6px;border:.5px solid transparent}
+.leg-card.active{box-shadow:0 0 0 1.5px var(--c)}
+.lc-head{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.lc-ico{font-size:14px;line-height:1}
+.lc-ttl{font-size:9.5px;font-weight:600}
+.lc-cat{display:flex;align-items:flex-start;gap:4px;margin-bottom:3px}
+.lc-sw{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:2px}
+.lc-name{font-size:8.5px;font-weight:500;line-height:1.3}
+.lc-rng{font-size:7.5px;line-height:1.3}
+.tl-row{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.tlb{font-size:8.5px;padding:2px 7px;border-radius:20px;border:.5px solid;font-weight:500}
+.tl0{background:#E1F5EE;color:#085041;border-color:#5DCAA5}
+.tl1{background:#E6F1FB;color:#0C447C;border-color:#85B7EB}
+.tl2{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC}
+.divl{height:.5px;background:#e0e0e0}
+.detail{padding:10px 12px 12px}
+.d-hint{font-size:11px;color:#888;font-style:italic}
+#d-content{display:none}
+.dc-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.dc-meta{flex:1;min-width:180px}
+.d-place{font-size:13px;font-weight:500;color:#111}
+.d-type{font-size:9px;color:#888;margin-top:1px}
+.d-dom{font-size:10.5px;font-weight:500;margin-top:5px;padding:3px 8px;border-radius:6px;display:inline-block}
+.sol-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:6px;margin-bottom:6px}
+.sol-card{border-radius:8px;padding:8px 10px;border:.5px solid transparent}
+.sc-head{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.sc-ico{font-size:12px}
+.sc-name{font-size:10px;font-weight:600}
+.sc-verb{font-size:8px;padding:1px 5px;border-radius:20px;font-weight:600;margin-left:auto;flex-shrink:0}
+.verb-rec{background:#E1F5EE;color:#085041}
+.verb-con{background:#E6F1FB;color:#0C447C}
+.verb-exp{background:#EEEDFE;color:#3C3489}
+.sc-text{font-size:9.5px;line-height:1.5}
+.sc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.sc-src{font-size:8.5px;color:#888}
+.disc{font-size:9px;color:#888;padding:6px 12px 8px;border-top:.5px solid #e0e0e0;background:#f8f8f8;line-height:1.5}
+.foot{font-size:8px;color:#888;padding:5px 12px 8px;border-top:.5px solid #e0e0e0;line-height:1.6}
+.city-dot{cursor:pointer}
+</style>
+</head>
+<body>
+<div class="page">
+<div id="mapcol">
+  <div id="loader">
+    <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#bbb" stroke-width="2.5"/><path d="M12 3 A9 9 0 0 1 21 12" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".9s" repeatCount="indefinite"/></path></svg>
+    <span id="lmsg">Fetching India district boundaries…</span>
+  </div>
+  <div id="errbox"></div>
+  <div id="tip">
+    <div class="tip-n" id="tn"></div>
+    <div class="tip-s" id="ts"></div>
+    <div class="tip-dom" id="tip-dom"></div>
+    <div class="tip-pills" id="tpills"></div>
+    <div class="tip-top" id="ttop"></div>
+    <div class="tip-filter" id="tip-filter"></div>
+  </div>
+  <div id="city-tip">
+    <div class="ct-n" id="ct-n"></div>
+    <div class="ct-s" id="ct-s"></div>
+    <div class="ct-dom" id="ct-dom"></div>
+    <div class="ct-note" id="ct-note"></div>
+  </div>
+  <svg id="msvg" viewBox="0 0 940 820" xmlns="http://www.w3.org/2000/svg"></svg>
+</div>
+
+<div class="btm">
+  <div class="tabs">
+    <button class="tab on" style="background:#1D9E75" onclick="setMode('water',this,'#1D9E75')"><span class="ico">💧</span><span class="lbl">Water Security</span></button>
+    <button class="tab" onclick="setMode('crop',this,'#5DCAA5')"><span class="ico">🌾</span><span class="lbl">Crop Adaptation</span></button>
+    <button class="tab" onclick="setMode('heat',this,'#378ADD')"><span class="ico">🌡</span><span class="lbl">Heat Action</span></button>
+    <button class="tab" onclick="setMode('eco',this,'#5C9E2C')"><span class="ico">🌳</span><span class="lbl">Ecological Buffer</span></button>
+    <button class="tab" onclick="setMode('warn',this,'#7F77DD')"><span class="ico">📡</span><span class="lbl">Early Warning</span></button>
+    <button class="tab" onclick="setMode('fiscal',this,'#C47F0A')"><span class="ico">💰</span><span class="lbl">Fiscal Readiness</span></button>
+  </div>
+  <div class="active-bar">
+    <div class="ab-row">
+      <span class="ab-ew" id="ab-ew">water security</span>
+      <span class="ab-ttl" id="ab-ttl">💧 Water Security — full color=primary · light=in set · grey=not in set</span>
+    </div>
+    <div class="filter-key">
+      <div class="fk"><div class="fk-swatch" style="background:#1D9E75"></div>Full color — dominant/primary need</div>
+      <div class="fk"><div class="fk-swatch" style="background:#A8DCC9"></div>Light tint — in solution set (secondary)</div>
+      <div class="fk"><div class="fk-swatch" style="background:#D8D6D0"></div>Grey — not in solution set</div>
+    </div>
+    <div class="tl-anchor">Timeline reference: June 2026 &nbsp;·&nbsp; <span class="tlb tl0">0–60d</span> = Jul–Aug 2026 &nbsp;·&nbsp; <span class="tlb tl1">60–120d</span> = Sep–Oct 2026 &nbsp;·&nbsp; <span class="tlb tl2">120–180d</span> = Nov 2026–Jan 2027</div>
+  </div>
+  <div class="leg-grid">
+    <div class="leg-card active" id="lc-water" style="--c:#1D9E75;background:#E1F5EE;border-color:#9FE1CB">
+      <div class="lc-head" style="color:#085041"><span class="lc-ico">💧</span><span class="lc-ttl">Water Security</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#1D9E75"></div><div><div class="lc-name" style="color:#085041">Reservoir management</div><div class="lc-rng" style="color:#2A7A5C">Emergency draw-down schedules</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#3AB88A"></div><div><div class="lc-name" style="color:#085041">Check dam desilting</div><div class="lc-rng" style="color:#2A7A5C">Before Sep 2026 monsoon tail</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#5DCAA5"></div><div><div class="lc-name" style="color:#085041">Groundwater recharge</div><div class="lc-rng" style="color:#2A7A5C">CGWB interim survey Dec 2026</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#9FE1CB"></div><div><div class="lc-name" style="color:#085041">Inter-basin protocols</div><div class="lc-rng" style="color:#2A7A5C">Pre-negotiation before crisis</div></div></div>
+      <div class="tl-row"><span class="tlb tl0">0–60 days</span><span class="tlb tl1">60–120 days</span></div>
+    </div>
+    <div class="leg-card" id="lc-crop" style="--c:#5DCAA5;background:#E8FAF4;border-color:#9FE1CB">
+      <div class="lc-head" style="color:#085041"><span class="lc-ico">🌾</span><span class="lc-ttl">Crop Adaptation</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#5DCAA5"></div><div><div class="lc-name" style="color:#085041">Contingency seeds</div><div class="lc-rng" style="color:#2A7A5C">DRRH-3, drought-tolerant maize</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#7AD4B8"></div><div><div class="lc-name" style="color:#085041">Drought-tolerant varieties</div><div class="lc-rng" style="color:#2A7A5C">ICAR state KVK distribution</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#A5E4D0"></div><div><div class="lc-name" style="color:#085041">Crop diversification</div><div class="lc-rng" style="color:#2A7A5C">Pulses over wheat, ragi over paddy</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#C8F0E5"></div><div><div class="lc-name" style="color:#085041">PMFBY expansion</div><div class="lc-rng" style="color:#2A7A5C">Kharif 2027 notify by Nov 2026</div></div></div>
+      <div class="tl-row"><span class="tlb tl1">60–120 days</span><span class="tlb tl2">120–180 days</span></div>
+    </div>
+    <div class="leg-card" id="lc-heat" style="--c:#378ADD;background:#E6F1FB;border-color:#B5D4F4">
+      <div class="lc-head" style="color:#0C447C"><span class="lc-ico">🌡</span><span class="lc-ttl">Heat Action</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#378ADD"></div><div><div class="lc-name" style="color:#0C447C">District HAP activation</div><div class="lc-rng" style="color:#1A5E9E">100 districts currently without plan</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#5FA3E8"></div><div><div class="lc-name" style="color:#0C447C">Cool roof program</div><div class="lc-rng" style="color:#1A5E9E">₹15–20/sqft · –3–4°C indoor</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#8FC2F0"></div><div><div class="lc-name" style="color:#0C447C">Labour protection</div><div class="lc-rng" style="color:#1A5E9E">12–3pm work-stoppage enforcement</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#C2DCF8"></div><div><div class="lc-name" style="color:#0C447C">Cooling centre mapping</div><div class="lc-rng" style="color:#1A5E9E">Existing govt buildings, panchayats</div></div></div>
+      <div class="tl-row"><span class="tlb tl0">0–60 days</span><span class="tlb tl1">60–120 days</span></div>
+    </div>
+    <div class="leg-card" id="lc-eco" style="--c:#5C9E2C;background:#EAF3DE;border-color:#C0DD97">
+      <div class="lc-head" style="color:#2A5A0A"><span class="lc-ico">🌳</span><span class="lc-ttl">Ecological Buffer</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#5C9E2C"></div><div><div class="lc-name" style="color:#2A5A0A">Wetland protection</div><div class="lc-rng" style="color:#3A7A12">Anti-encroachment, satellite alert</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#7DBE4E"></div><div><div class="lc-name" style="color:#2A5A0A">Agroforestry belts</div><div class="lc-rng" style="color:#3A7A12">Bund trees, MGNREGS convergence</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#A5D47A"></div><div><div class="lc-name" style="color:#2A5A0A">Urban tree canopy</div><div class="lc-rng" style="color:#3A7A12">ISRO Bhuvan audit, cities &gt;5L</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#C8E8A5"></div><div><div class="lc-name" style="color:#2A5A0A">Coral reef monitoring</div><div class="lc-rng" style="color:#3A7A12">Lakshadweep, A&N — SST alerts</div></div></div>
+      <div class="tl-row"><span class="tlb tl1">60–120 days</span><span class="tlb tl2">120–180 days</span></div>
+    </div>
+    <div class="leg-card" id="lc-warn" style="--c:#7F77DD;background:#EEEDFE;border-color:#CECBF6">
+      <div class="lc-head" style="color:#3C3489"><span class="lc-ico">📡</span><span class="lc-ttl">Early Warning</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#7F77DD"></div><div><div class="lc-name" style="color:#3C3489">IMD block AAS activation</div><div class="lc-rng" style="color:#5550B2">40% blocks still inactive · CSC SMS</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#9A94E6"></div><div><div class="lc-name" style="color:#3C3489">CGWB pre-monsoon survey</div><div class="lc-rng" style="color:#5550B2">Advance by 6 weeks to Dec 2026</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#B8B3EE"></div><div><div class="lc-name" style="color:#3C3489">CWC reservoir dashboard</div><div class="lc-rng" style="color:#5550B2">Public API — WRIS data</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D5D2F5"></div><div><div class="lc-name" style="color:#3C3489">Cyclone-drought confluence</div><div class="lc-rng" style="color:#5550B2">Coastal states protocol</div></div></div>
+      <div class="tl-row"><span class="tlb tl0">0–60 days</span></div>
+    </div>
+    <div class="leg-card" id="lc-fiscal" style="--c:#C47F0A;background:#FAEEDA;border-color:#FAC775">
+      <div class="lc-head" style="color:#6B3F00"><span class="lc-ico">💰</span><span class="lc-ttl">Fiscal Readiness</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#C47F0A"></div><div><div class="lc-name" style="color:#6B3F00">MGNREGS advance allocation</div><div class="lc-rng" style="color:#8A5200">30% front-load before Mar 2027</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D49A30"></div><div><div class="lc-name" style="color:#6B3F00">Drought reserve fund</div><div class="lc-rng" style="color:#8A5200">₹600–800 Cr CRF pre-position</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#E4B860"></div><div><div class="lc-name" style="color:#6B3F00">FCI buffer procurement</div><div class="lc-rng" style="color:#8A5200">+8–10 MMT wheat, rabi 2026</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#F0D498"></div><div><div class="lc-name" style="color:#6B3F00">Fisheries income support</div><div class="lc-rng" style="color:#8A5200">Island UTs — SST catch –25%</div></div></div>
+      <div class="tl-row"><span class="tlb tl0">0–60 days</span><span class="tlb tl1">60–120 days</span><span class="tlb tl2">120–180 days</span></div>
+    </div>
+  </div>
+  <div class="divl"></div>
+  <div class="detail">
+    <div id="d-hint" class="d-hint">Hover any district or city dot · Click to pin · All suggestions voluntary · Timeline from June 2026</div>
+    <div id="d-content">
+      <div class="dc-top">
+        <div class="dc-meta">
+          <div class="d-place" id="dp"></div>
+          <div class="d-type" id="dt"></div>
+          <div class="d-dom" id="ddom"></div>
+        </div>
+      </div>
+      <div class="sol-grid" id="sol-grid"></div>
+    </div>
+  </div>
+  <div class="disc">💡 All suggestions voluntary · Context-dependent · Timeline from June 2026 · Recommend = strong historical evidence (2009/2015 droughts) · Consider = medium evidence · Explore = emerging · Sources: IMD · CGWB · CWC · ICAR · NDMA · FCI · MoRD</div>
+  <div class="foot" id="foot">India — El Niño 2027 Suggested Solutions Map v2.0 · All 36 states/UTs with tailored solutions · Timeline from June 2026 · Island insets geographically positioned with crosshairs · Boundaries per Govt of India · geoBoundaries ADM2 CC-BY 4.0</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+/* ═══════════════════════════════════════
+   SOLUTION CATEGORIES
+═══════════════════════════════════════ */
+const CATS={
+  water:{color:'#1D9E75',light:'#A8DCC9',vlight:'#D4EFE7',border:'#9FE1CB',label:'💧 Water Security'},
+  crop: {color:'#5DCAA5',light:'#B0DED0',vlight:'#DCF2EC',border:'#9FE1CB',label:'🌾 Crop Adaptation'},
+  heat: {color:'#378ADD',light:'#A5C8EE',vlight:'#D2E4F7',border:'#B5D4F4',label:'🌡 Heat Action'},
+  eco:  {color:'#5C9E2C',light:'#AACF7E',vlight:'#D5E7BE',border:'#C0DD97',label:'🌳 Ecological Buffer'},
+  warn: {color:'#7F77DD',light:'#B8B3EE',vlight:'#DBD9F6',border:'#CECBF6',label:'📡 Early Warning'},
+  fiscal:{color:'#C47F0A',light:'#DEB878',vlight:'#EDD9B2',border:'#FAC775',label:'💰 Fiscal Readiness'},
+};
+const TLC=['tl0','tl1','tl2'];
+const TLL=['0–60 days (Jul–Aug 2026)','60–120 days (Sep–Oct 2026)','120–180 days (Nov 2026–Jan 2027)'];
+const LC_IDS={water:'lc-water',crop:'lc-crop',heat:'lc-heat',eco:'lc-eco',warn:'lc-warn',fiscal:'lc-fiscal'};
+
+/* ═══════════════════════════════════════
+   TYPOLOGY + STATE SOLUTIONS
+═══════════════════════════════════════ */
+const TYPO_MAP={
+  'Rajasthan':'arid','Gujarat':'arid','Chandigarh':'arid',
+  'Madhya Pradesh':'semi_arid','Maharashtra':'semi_arid','Telangana':'semi_arid','Andhra Pradesh':'semi_arid','Karnataka':'semi_arid','Haryana':'semi_arid','Punjab':'semi_arid','Delhi':'semi_arid',
+  'Uttar Pradesh':'sub_humid','Bihar':'sub_humid','West Bengal':'sub_humid','Odisha':'sub_humid','Chhattisgarh':'sub_humid','Jharkhand':'sub_humid','Tripura':'sub_humid','Assam':'sub_humid',
+  'Kerala':'humid','Goa':'humid','Tamil Nadu':'humid','Puducherry':'humid','Dadara and Nagar Haveli and Daman and Diu':'humid',
+  'Jammu and Kashmir':'mountain','Ladakh':'mountain','Himachal Pradesh':'mountain','Uttarakhand':'mountain','Sikkim':'mountain','Arunachal Pradesh':'mountain','Nagaland':'mountain','Manipur':'mountain','Mizoram':'mountain','Meghalaya':'mountain',
+  'Lakshadweep':'island','Andaman and Nicobar Islands':'island',
+};
+const TYPO_DEFAULTS={
+  arid:{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend check dam and farm pond desilting before September 2026 — last natural recharge window before 2027 drought season.',src:'CGWB / NABARD'},{cat:'fiscal',tl:0,verb:'rec',text:'Recommend pre-positioning Calamity Relief Fund drought reserves before December 2026.',src:'Finance Ministry'},{cat:'warn',tl:0,verb:'rec',text:'Recommend activating IMD block-level AAS via Common Service Centre SMS chain.',src:'IMD'},{cat:'crop',tl:1,verb:'con',text:'Consider chickpea and lentil over wheat advisory — 40% lower water requirement.',src:'ICAR state KVK'}]},
+  semi_arid:{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend reservoir draw-down schedule review before rabi sowing commitment — farmers need water certainty by October.',src:'CWC / State WRD'},{cat:'crop',tl:1,verb:'rec',text:'Recommend drought-tolerant variety seed kit distribution — proven effective in 2009 Deccan drought.',src:'ICAR state KVK'},{cat:'warn',tl:0,verb:'con',text:'Consider IMD block-level AAS activation for all blocks.',src:'IMD'},{cat:'fiscal',tl:1,verb:'con',text:'Consider MGNREGS advance allocation to rural districts before March 2027.',src:'Ministry of Rural Development'}]},
+  sub_humid:{dom:'fiscal',sols:[{cat:'fiscal',tl:0,verb:'rec',text:'Recommend MGNREGS demand surge pre-planning — sub-humid states show 40–55% demand spike in drought years.',src:'Ministry of Rural Development'},{cat:'warn',tl:0,verb:'rec',text:'Recommend IMD AAS activation for all remaining inactive blocks.',src:'IMD'},{cat:'crop',tl:1,verb:'con',text:'Consider short-duration crop variety distribution for delayed or deficit monsoon contingency.',src:'ICAR state KVK'},{cat:'water',tl:0,verb:'con',text:'Consider reservoir release schedule review and groundwater survey by December 2026.',src:'CWC / CGWB'}]},
+  humid:{dom:'eco',sols:[{cat:'eco',tl:1,verb:'rec',text:'Recommend watershed forest protection enforcement — primary recharge zones for downstream reservoirs.',src:'State Forest Department'},{cat:'warn',tl:0,verb:'rec',text:'Recommend coastal early warning upgrade — El Niño produces unusual late-season weather events.',src:'IMD coastal station'},{cat:'water',tl:0,verb:'con',text:'Consider reservoir release planning for pre-monsoon thermal power backup demand.',src:'State power utility'},{cat:'fiscal',tl:2,verb:'exp',text:'Explore fisheries income support buffer — warm SST reduces coastal fish catch in El Niño years.',src:'CMFRI / State fisheries'}]},
+  mountain:{dom:'warn',sols:[{cat:'warn',tl:0,verb:'rec',text:'Recommend IMD AAS activation for valley districts — upstream Himalayan flow data critical for downstream planning.',src:'IMD regional centre'},{cat:'eco',tl:1,verb:'rec',text:'Recommend glacier and watershed monitoring intensification — accelerated melt in El Niño years.',src:'ISRO / GSI'},{cat:'crop',tl:1,verb:'con',text:'Consider traditional water harvesting system revival (zabo, kul) — more drought-resilient.',src:'NERIST / State agri dept'},{cat:'fiscal',tl:2,verb:'exp',text:'Explore horticultural crop insurance expansion for apple and cardamom.',src:'Agriculture Ministry'}]},
+  island:{dom:'eco',sols:[{cat:'eco',tl:0,verb:'rec',text:'Recommend coral reef SST monitoring — Arabian Sea/Bay of Bengal will likely exceed bleaching threshold in 2027.',src:'NCPOR / MoES'},{cat:'warn',tl:0,verb:'rec',text:'Recommend enhanced coastal early warning for unusual El Niño weather patterns.',src:'IMD coastal station'},{cat:'water',tl:1,verb:'rec',text:'Recommend rainwater harvesting system maintenance audit — primary freshwater source.',src:'UT Administration'},{cat:'fiscal',tl:1,verb:'con',text:'Consider fisheries income support buffer — warm SST reduces catch 15–25% in El Niño years.',src:'CMFRI / State fisheries'}]},
+};
+const STATE_SOLS={
+  'Lakshadweep':{dom:'eco',sols:[{cat:'eco',tl:0,verb:'rec',text:'Recommend coral reef bleaching alert — Arabian Sea SST +1.5–1.8°C will exceed Degree Heating Weeks threshold in 2027.',src:'NCPOR / MoES'},{cat:'warn',tl:0,verb:'rec',text:'Recommend coastal early warning upgrade — El Niño produces unusual late-season weather off Lakshadweep.',src:'IMD Thiruvananthapuram'},{cat:'water',tl:1,verb:'rec',text:'Recommend rainwater harvesting audit for all 10 inhabited islands — sole freshwater source.',src:'UT Administration'},{cat:'fiscal',tl:1,verb:'con',text:'Consider fisheries income support — warm SST reduces catch 15–25% in El Niño years.',src:'CMFRI Kochi'}]},
+  'Andaman and Nicobar Islands':{dom:'eco',sols:[{cat:'eco',tl:1,verb:'rec',text:'Recommend mangrove and seagrass protection — primary coastal buffer against heat stress on reef fisheries.',src:'ANET / MoEFCC'},{cat:'warn',tl:0,verb:'rec',text:'Recommend cyclone-drought preparedness briefing — Bay of Bengal cyclone patterns shift in El Niño years.',src:'IMD Port Blair'},{cat:'fiscal',tl:1,verb:'con',text:'Consider fisheries income support — warm SST affects tuna and reef fish catch.',src:'Fisheries Survey of India'},{cat:'water',tl:1,verb:'con',text:'Consider rainwater harvesting audit for Car Nicobar and Campbell Bay.',src:'UT Administration'}]},
+  'Rajasthan':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Bisalpur and Rana Pratap Sagar emergency release schedules before rabi sowing.',src:'CWC / Rajasthan WRDD'},{cat:'heat',tl:1,verb:'rec',text:'Recommend Heat Action Plans for Churu, Bikaner, Barmer — 60+ projected heatwave days, no current plan.',src:'NDMA'},{cat:'fiscal',tl:0,verb:'rec',text:'Recommend pre-positioning ₹600–800 Cr CRF drought reserve before December 2026.',src:'Finance Ministry'},{cat:'crop',tl:1,verb:'con',text:'Consider chickpea and lentil advisory over wheat — 40% lower water requirement.',src:'ICAR-ICRISAT'}]},
+  'Madhya Pradesh':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Narmada, Chambal, Tawa draw-down schedules by October 2026 before rabi commitment.',src:'CWC / NVDA'},{cat:'crop',tl:1,verb:'rec',text:'Recommend soybean-to-tur dal diversification in Bundelkhand — drought-resilient, better MSP.',src:'ICAR-JNKVV Jabalpur'},{cat:'fiscal',tl:0,verb:'rec',text:'Recommend front-loading 30% MGNREGS FY27-28 to Bundelkhand and Vindhya.',src:'Ministry of Rural Development'},{cat:'eco',tl:1,verb:'con',text:'Consider MGNREGS convergence for bund-level tree planting in 18 tribal districts.',src:'ICRAF / MGNREGS'}]},
+  'Maharashtra':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Jayakwadi emergency allocation — drinking water must take priority over irrigation.',src:'CWC / Maharashtra WRD'},{cat:'crop',tl:1,verb:'rec',text:'Recommend short-duration sorghum over sugarcane in Marathwada — Osmanabad, Latur, Beed.',src:'VNMKV Parbhani'},{cat:'heat',tl:1,verb:'con',text:'Consider Nagpur, Amravati cool roof expansion — ₹15–20/sqft, reduces indoor temp 3–4°C.',src:'NMC / TERI'},{cat:'fiscal',tl:2,verb:'con',text:'Consider PMFBY notified area expansion for kharif 2027 before November 2026.',src:'Agriculture Ministry'}]},
+  'Uttar Pradesh':{dom:'fiscal',sols:[{cat:'fiscal',tl:0,verb:'rec',text:'Recommend MGNREGS 30% advance for Bundelkhand and Purvanchal — 78/100 distress index, highest nationally.',src:'Ministry of Rural Development'},{cat:'water',tl:0,verb:'rec',text:'Recommend Ganga-Yamuna basin groundwater interim survey December 2026.',src:'CGWB UP'},{cat:'warn',tl:0,verb:'rec',text:'Recommend activating remaining 40% IMD AAS blocks via CSC SMS.',src:'IMD Lucknow'},{cat:'crop',tl:1,verb:'con',text:'Consider contingency seed kit for 42 rainfall-deficit districts before April 2027.',src:'ICAR-IARI'}]},
+  'Gujarat':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Sardar Sarovar emergency review — Saurashtra tank desilting before October 2026.',src:'SSNNL / CWC'},{cat:'crop',tl:1,verb:'con',text:'Consider groundnut-to-castor diversification in Saurashtra — 50% less water, strong export market.',src:'ICAR-DOR Hyderabad'},{cat:'warn',tl:0,verb:'con',text:'Consider cyclone-drought confluence alert for coastal Saurashtra.',src:'IMD Ahmedabad'}]},
+  'Telangana':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Srisailam release renegotiation with AP before October 2026.',src:'CWC / Krishna River Board'},{cat:'crop',tl:1,verb:'rec',text:'Recommend cotton-to-redgram advisory for 18 dryland districts — 40% less water.',src:'ICAR-CRIDA Hyderabad'},{cat:'fiscal',tl:0,verb:'rec',text:'Recommend MGNREGS pre-activation for 12 critical districts before June 2027.',src:'Telangana Rural Dev'},{cat:'heat',tl:1,verb:'con',text:'Consider HAP for Nalgonda, Yadgir, Mahbubnagar — 40+ projected heatwave days.',src:'NDMA'}]},
+  'Karnataka':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend KRS release schedule pre-negotiation with Tamil Nadu before Cauvery dispute season.',src:'CWMA / CWC'},{cat:'crop',tl:1,verb:'rec',text:'Recommend ragi diversification over paddy in north Karnataka — 60% less water.',src:'UAS Dharwad'},{cat:'eco',tl:1,verb:'con',text:'Consider Western Ghats anti-degradation satellite monitoring via ISRO Bhuvan.',src:'ISRO / KFFD'},{cat:'heat',tl:1,verb:'con',text:'Consider Bengaluru urban tree canopy audit — identify heat island gaps.',src:'BBMP / KSPCB'}]},
+  'Andhra Pradesh':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Prakasam Barrage emergency sharing protocol with Telangana.',src:'CWC / Krishna River Board'},{cat:'crop',tl:1,verb:'con',text:'Consider drought-tolerant groundnut seed for Prakasam and Kurnool.',src:'ICAR-CTRI Rajahmundry'},{cat:'heat',tl:1,verb:'con',text:'Consider HAP for Nandyal, Kurnool, Anantapur — 35–40 projected heatwave days.',src:'NDMA / AP Govt'}]},
+  'Tamil Nadu':{dom:'warn',sols:[{cat:'warn',tl:0,verb:'rec',text:'Recommend Cauvery basin drought early warning activation for delta districts.',src:'IMD Chennai'},{cat:'water',tl:0,verb:'rec',text:'Recommend Mettur release coordination with Karnataka before October 2026.',src:'CWMA / CWC'},{cat:'crop',tl:1,verb:'con',text:'Consider short-duration ADT-45 paddy for second crop — 20–25% water saving.',src:'TNAU Coimbatore'}]},
+  'Kerala':{dom:'eco',sols:[{cat:'eco',tl:1,verb:'rec',text:'Recommend Periyar, Kabani watershed forest protection — recharge for 6 hydropower reservoirs.',src:'Kerala Forest Dept / KSEB'},{cat:'warn',tl:0,verb:'rec',text:'Recommend fishermen coastal early warning upgrade — unusual late-season events expected.',src:'IMD Thiruvananthapuram'},{cat:'water',tl:0,verb:'con',text:'Consider Idukki and Idamalayar release planning for pre-monsoon power backup.',src:'KSEB'}]},
+  'Punjab':{dom:'warn',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Bhakra-Beas release schedule shared with Haryana and Rajasthan before October 2026.',src:'BBMB'},{cat:'crop',tl:1,verb:'rec',text:'Recommend paddy-to-maize or basmati diversification — 40% groundwater saving.',src:'PAU Ludhiana'},{cat:'warn',tl:0,verb:'rec',text:'Recommend completing CGWB audit for all 78% over-exploited blocks.',src:'CGWB Punjab'}]},
+  'Haryana':{dom:'heat',sols:[{cat:'heat',tl:1,verb:'rec',text:'Recommend HAP activation for Hisar, Sirsa, Bhiwani — 38+ projected heatwave days.',src:'NDMA / Haryana'},{cat:'water',tl:0,verb:'rec',text:'Recommend Yamuna groundwater rationing order for 14 over-exploited blocks.',src:'CGWB Haryana'},{cat:'crop',tl:1,verb:'con',text:'Consider wheat-to-pulses transition in southern Haryana — 50% less water.',src:'ICAR-IIWBR Karnal'}]},
+  'Odisha':{dom:'water',sols:[{cat:'water',tl:0,verb:'rec',text:'Recommend Hirakud emergency release coordination with downstream Chhattisgarh.',src:'CWC / Hirakud Project'},{cat:'crop',tl:1,verb:'rec',text:'Recommend Sahbhagi Dhan short-duration paddy for Mahanadi delta.',src:'ICAR-NRRI Cuttack'},{cat:'warn',tl:0,verb:'con',text:'Consider compound flood-drought dual alert system — both risk windows active.',src:'IMD Bhubaneswar'}]},
+  'Bihar':{dom:'fiscal',sols:[{cat:'fiscal',tl:0,verb:'rec',text:'Recommend MGNREGS demand surge pre-planning for August 2027 — 55–65% spike in prior drought years.',src:'Ministry of Rural Development'},{cat:'water',tl:0,verb:'rec',text:'Recommend Maithon and Panchet drawdown schedule review — DVC must coordinate with WB.',src:'DVC / CWC'},{cat:'warn',tl:0,verb:'con',text:'Consider compound flood-drought dual alert — drought Jun–Jul, flood Aug–Sep in Bihar.',src:'IMD Patna'}]},
+  'Chhattisgarh':{dom:'crop',sols:[{cat:'crop',tl:1,verb:'rec',text:'Recommend short-duration sorghum replacing paddy in upper Mahanadi zone.',src:'IGKV Raipur'},{cat:'water',tl:0,verb:'rec',text:'Recommend Hasdeo check dam desilting in all 13 affected districts before October 2026.',src:'CGWB / CGWRSDC'},{cat:'fiscal',tl:0,verb:'rec',text:'Recommend MGNREGS pre-activation for Bastar, Surguja — 70+ distress index.',src:'Ministry of Rural Development'}]},
+  'West Bengal':{dom:'crop',sols:[{cat:'crop',tl:1,verb:'rec',text:'Recommend jute-to-aus paddy shift for DVC basin districts — short-duration fits reduced water window.',src:'BCKV Mohanpur'},{cat:'water',tl:0,verb:'rec',text:'Recommend DVC Maithon-Panchet release schedule review.',src:'DVC / CWC'},{cat:'heat',tl:1,verb:'con',text:'Consider Kolkata and Howrah HAP activation — 22+ projected extreme days.',src:'NDMA / KMDA'}]},
+  'Assam':{dom:'warn',sols:[{cat:'warn',tl:0,verb:'rec',text:'Recommend IMD Guwahati AAS for all Brahmaputra valley districts — both flood and drought alerts.',src:'IMD Guwahati'},{cat:'crop',tl:1,verb:'con',text:'Consider boro rice replacement with spring maize in chars (river islands).',src:'AAU Jorhat'},{cat:'eco',tl:2,verb:'exp',text:'Explore Kaziranga buffer wetland anti-encroachment — primary groundwater recharge.',src:'Assam Forest Dept'}]},
+  'Jharkhand':{dom:'fiscal',sols:[{cat:'fiscal',tl:0,verb:'rec',text:'Recommend MGNREGS advance allocation — tribal rainfed farming shows 55% demand spike in drought years.',src:'Ministry of Rural Development'},{cat:'water',tl:0,verb:'con',text:'Consider Maithon and Panchet reservoir drawdown schedule — 33% capacity.',src:'DVC / CWC'},{cat:'crop',tl:1,verb:'con',text:'Consider millets and pulses contingency seed for drought-exposed districts.',src:'ICAR / Jharkhand Agri Dept'}]},
+};
+
+function getSD(state){return STATE_SOLS[state]||(TYPO_DEFAULTS[TYPO_MAP[state]||'sub_humid']);}
+function domColor(state){return CATS[getSD(state).dom]?.color||'#1D9E75';}
+
+/* CITY DATA for solutions hover */
+const CITY_SOLS=[
+  ['Delhi',28.61,77.21,'Delhi',32.9,'heat','Urban heat island — Heat Action Plan activation urgent. 48+ extreme days projected.'],
+  ['Mumbai',19.08,72.88,'Maharashtra',20.7,'water','Jayakwadi supply crisis — coastal buffer does not offset upstream reservoir stress.'],
+  ['Bengaluru',12.97,77.59,'Karnataka',12.8,'eco','Urban tree canopy audit needed — heat island gap growing. KRS at 42%.'],
+  ['Hyderabad',17.39,78.49,'Telangana',10.5,'water','Srisailam at 27% — emergency release renegotiation with AP recommended.'],
+  ['Chennai',13.08,80.27,'Tamil Nadu',10.9,'warn','Cauvery basin drought early warning needed. Bay of Bengal SST +1.2°C.'],
+  ['Kolkata',22.57,88.36,'West Bengal',14.8,'warn','Compound cyclone-drought risk. HAP activation for Kolkata-Howrah needed.'],
+  ['Ahmedabad',23.02,72.57,'Gujarat',8.4,'water','Sardar Sarovar emergency review. 35+ heatwave days — HAP needed.'],
+  ['Jaipur',26.91,75.79,'Rajasthan',4.0,'water','Bisalpur at 18% — drinking water priority emergency. CRF pre-position urgent.'],
+  ['Lucknow',26.85,80.95,'Uttar Pradesh',3.7,'fiscal','78/100 distress — MGNREGS 30% advance for UP recommended immediately.'],
+  ['Patna',25.60,85.13,'Bihar',2.5,'warn','Compound flood-drought — dual alert system needed: drought Jun, flood Aug.'],
+  ['Bhubaneswar',20.30,85.82,'Odisha',1.0,'water','Hirakud at 38%. Mahanadi 35% deficit. Compound risk state.'],
+  ['Guwahati',26.18,91.74,'Assam',1.1,'warn','Brahmaputra compound flood-drought. AAS for all valley districts recommended.'],
+  ['Kavaratti',10.56,72.64,'Lakshadweep',0.01,'eco','UT capital — CORAL BLEACHING HIGH RISK. SST +1.8°C. Reef monitoring urgent.'],
+  ['Port Blair',11.67,92.74,'Andaman and Nicobar Islands',0.1,'eco','BoB SST +1.5°C. MHW +40 days. Mangrove protection + cyclone preparedness.'],
+  ['Thiruvananthapuram',8.52,76.94,'Kerala',1.0,'eco','Watershed forest protection for Periyar, Kabani — 6 hydropower reservoirs.'],
+];
+
+function norm(s){const m={'Jammu & Kashmir':'Jammu and Kashmir','Orissa':'Odisha','Uttaranchal':'Uttarakhand','Pondicherry':'Puducherry','Andaman & Nicobar':'Andaman and Nicobar Islands','Andaman And Nicobar Islands':'Andaman and Nicobar Islands'};return m[s]||s;}
+function gp(p,ks){for(const k of ks)if(p[k])return p[k];return '';}
+function dN(p){return gp(p,['shapeName','district','DISTRICT','NAME_2','name','NAME','dtname']);}
+function sN(p){return norm(gp(p,['shapeGroup','state','STATE','NAME_1','st_nm','stname']));}
+
+let mode='water',pinned=false,pinEl=null;
+
+function fillF(dist,state){
+  const sd=getSD(state);const c=CATS[mode];if(!c)return'#D8D6D0';
+  if(sd.dom===mode)return c.color;
+  if(sd.sols.some(s=>s.cat===mode))return c.light;
+  return'#D8D6D0';
+}
+
+function setMode(md,btn,color){
+  mode=md;
+  document.querySelectorAll('.tab').forEach(b=>{b.classList.remove('on');b.style.background='';b.style.color='';});
+  btn.classList.add('on');btn.style.background=color;btn.style.color='#fff';
+  document.getElementById('ab-ew').textContent=CATS[md].label.replace(/^\S+\s/,'').toLowerCase();
+  document.getElementById('ab-ttl').textContent=CATS[md].label+' — full color=primary · light=in set · grey=not in set';
+  Object.entries(LC_IDS).forEach(([k,id])=>{const el=document.getElementById(id);if(el){el.classList.toggle('active',k===md);el.style.setProperty('--c',CATS[k].color);}});
+  d3.selectAll('.dp').attr('fill',function(){return fillF(this.dataset.dist||'',this.dataset.state||'');});
+  updateInsetSubs();
+  updateCityDots();
+}
+
+const insetSubEls={};
+function insetSub(sk){
+  const sd=getSD(sk);const dom=sd.dom;const c=CATS[dom];
+  return c?`${c.label.split(' ').slice(1).join(' ')} — primary need · ${sk==='Lakshadweep'?'Arabian Sea':'Bay of Bengal'}`:'';
+}
+function updateInsetSubs(){Object.entries(insetSubEls).forEach(([k,el])=>el.text(insetSub(k)));}
+
+function updateCityDots(){
+  d3.selectAll('.city-sol-dot').attr('fill',function(){
+    const s=this.dataset.state||'',dom=this.dataset.dom||'';
+    const c=CATS[dom];if(!c)return'#D8D6D0';
+    if(dom===mode)return c.color;
+    const sd=getSD(s);if(sd.sols.some(x=>x.cat===mode))return c.light;
+    return'#D8D6D0';
+  });
+}
+
+function hideTip(){document.getElementById('tip').style.display='none';}
+function hideCityTip(){document.getElementById('city-tip').style.display='none';}
+
+function showTip(evt,dist,state){
+  const sd=getSD(state);const c=CATS[sd.dom];
+  document.getElementById('tn').textContent=dist||'—';
+  document.getElementById('ts').textContent=state||'';
+  if(c){const td=document.getElementById('tip-dom');td.textContent=c.label+' — primary need';td.style.background=c.light;td.style.color=c.color;}
+  document.getElementById('tpills').innerHTML=[...new Set(sd.sols.map(s=>s.cat))].slice(0,4).map(cat=>{const c2=CATS[cat];return`<span class="tip-pill" style="background:${c2.light};color:${c2.color};border:.5px solid ${c2.border}">${c2.label}</span>`;}).join('');
+  const top=sd.sols[0];
+  if(top){const vl={'rec':'Recommend','con':'Consider','exp':'Explore'}[top.verb]||'Consider';document.getElementById('ttop').textContent=vl+': '+top.text.substring(0,88)+'…';}
+  const relToMode=sd.dom===mode?'Primary need for this state in current filter':sd.sols.some(s=>s.cat===mode)?'Secondary — in solution set':'Not in solution set for current filter';
+  document.getElementById('tip-filter').textContent=relToMode;
+  const wrap=document.getElementById('mapcol');const r=wrap.getBoundingClientRect();
+  let tx=evt.clientX-r.left+13,ty=evt.clientY-r.top-10;
+  if(tx>r.width-250)tx=evt.clientX-r.left-250;if(ty<0)ty=4;
+  const tip=document.getElementById('tip');tip.style.left=tx+'px';tip.style.top=ty+'px';tip.style.display='block';
+}
+
+function showCityTip(evt,name,state,pop,dom,note){
+  const c=CATS[dom];
+  document.getElementById('ct-n').textContent=name+' (City)';
+  document.getElementById('ct-s').textContent=state+' · Pop. '+pop+'M';
+  if(c){const cd=document.getElementById('ct-dom');cd.textContent=c.label+' — primary need';cd.style.background=c.light;cd.style.color=c.color;}
+  document.getElementById('ct-note').textContent=note;
+  const wrap=document.getElementById('mapcol');const r=wrap.getBoundingClientRect();
+  let tx=evt.clientX-r.left+14,ty=evt.clientY-r.top-14;
+  if(tx>r.width-230)tx=evt.clientX-r.left-230;if(ty<0)ty=4;
+  const ct=document.getElementById('city-tip');ct.style.left=tx+'px';ct.style.top=ty+'px';ct.style.display='block';
+}
+
+function showPanel(dist,state){
+  document.getElementById('d-hint').style.display='none';document.getElementById('d-content').style.display='block';
+  document.getElementById('dp').textContent=dist+(state&&state!==dist?' · '+state:'');
+  document.getElementById('dt').textContent='';
+  const sd=getSD(state);const dc=CATS[sd.dom];
+  if(dc){document.getElementById('ddom').textContent=dc.label+' — dominant need';document.getElementById('ddom').style.background=dc.light;document.getElementById('ddom').style.color=dc.color;}
+  document.getElementById('sol-grid').innerHTML=sd.sols.map(s=>{
+    const c=CATS[s.cat];const vc={'rec':'verb-rec','con':'verb-con','exp':'verb-exp'}[s.verb]||'verb-con';const vl={'rec':'Recommend','con':'Consider','exp':'Explore'}[s.verb]||'Consider';
+    return`<div class="sol-card" style="background:${c.light};border-color:${c.border}"><div class="sc-head"><span class="sc-ico">${c.label.split(' ')[0]}</span><span class="sc-name" style="color:${c.color}">${c.label.substring(2)}</span><span class="sc-verb ${vc}">${vl}</span></div><div class="sc-text" style="color:#444">${s.text}</div><div class="sc-foot"><span class="sc-src">Source: ${s.src}</span><span class="tlb ${TLC[s.tl]}">${TLL[s.tl]}</span></div></div>`;
+  }).join('');
+}
+
+function drawFeats(g,feats,pfn){
+  feats.forEach(f=>{
+    const dn=dN(f.properties),sn=sN(f.properties);
+    g.append('path').datum(f).attr('d',pfn).attr('fill',fillF(dn,sn)).attr('class','dp').attr('data-dist',dn).attr('data-state',sn)
+      .on('mousemove',function(evt){if(!pinned){hideCityTip();showTip(evt,dn,sn);showPanel(dn,sn);}})
+      .on('mouseleave',()=>{if(!pinned)hideTip();})
+      .on('click',function(){if(pinEl)d3.select(pinEl).classed('sel',false);if(pinEl===this){pinned=false;pinEl=null;hideTip();return;}pinned=true;pinEl=this;d3.select(this).classed('sel',true);showPanel(dn,sn);hideTip();});
+  });
+}
+function drawBorders(svg,feats,pfn){
+  const fc={type:'FeatureCollection',features:feats};
+  svg.append('path').attr('d',pfn(fc)).attr('fill','none').attr('stroke','rgba(255,255,255,.65)').attr('stroke-width',1).attr('pointer-events','none');
+  svg.append('path').attr('d',pfn(fc)).attr('fill','none').attr('stroke','rgba(20,20,20,.5)').attr('stroke-width',1.8).attr('pointer-events','none');
+}
+
+function addCityLayer(svg,proj){
+  const g=svg.append('g').attr('class','city-layer');
+  CITY_SOLS.forEach(([name,lat,lon,state,pop,dom,note])=>{
+    const pt=proj([lon,lat]);if(!pt||isNaN(pt[0]))return;
+    const[cx,cy]=pt;const r=Math.max(3.5,Math.min(7,Math.sqrt(pop)*1.4));
+    const c=CATS[dom];const fillC=dom===mode?c.color:c.light;
+    g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',r)
+      .attr('fill',fillC).attr('stroke','rgba(20,20,20,.75)').attr('stroke-width',1.2)
+      .attr('class','city-sol-dot dp').attr('data-city',name).attr('data-state',state).attr('data-dom',dom)
+      .style('cursor','pointer')
+      .on('mousemove',evt=>{hideTip();showCityTip(evt,name,state,pop,dom,note);showPanel(name,state);})
+      .on('mouseleave',()=>hideCityTip())
+      .on('click',evt=>{evt.stopPropagation();pinned=true;showPanel(name,state);hideCityTip();});
+    if(pop>=5)g.append('text').attr('x',cx+r+3).attr('y',cy+4).attr('font-size',8).attr('font-weight',600).attr('fill','rgba(20,20,20,.78)').attr('pointer-events','none').text(name);
+  });
+}
+
+function drawInset(svg,feats,box,title,sk,hasBndry,proj){
+  const{x,y,w,h}=box;
+  svg.append('rect').attr('x',x).attr('y',y).attr('width',w).attr('height',h).attr('fill','#C8E8F5').attr('stroke','rgba(20,20,20,.3)').attr('stroke-width',.8).attr('rx',4);
+  for(let iy=y+8;iy<y+h-4;iy+=9)
+    svg.append('line').attr('x1',x+4).attr('y1',iy).attr('x2',x+w-4).attr('y2',iy).attr('stroke','rgba(150,210,240,.18)').attr('stroke-width',.5).attr('pointer-events','none');
+  if(hasBndry&&feats.length>0){
+    const ip=d3.geoMercator().fitExtent([[x+5,y+20],[x+w-5,y+h-28]],{type:'FeatureCollection',features:feats});
+    const pfn=d3.geoPath(ip);drawFeats(svg.append('g'),feats,pfn);drawBorders(svg,feats,pfn);
+  } else {
+    const isAN=/andaman/i.test(sk);const fc=fillF(sk,sk);
+    if(isAN){
+      [[.42,.12,22,10,'N. Andaman'],[.45,.43,24,12,'S. Andaman'],[.5,.76,17,8,'Nicobar']].forEach(([rx,ry,rw,rh,lbl])=>{
+        const cx=x+5+rx*(w-10),cy=y+20+ry*(h-46);
+        svg.append('ellipse').attr('cx',cx).attr('cy',cy).attr('rx',rw).attr('ry',rh).attr('fill',fc).attr('stroke','rgba(20,20,20,.4)').attr('stroke-width',.7).attr('class','dp').attr('data-dist',lbl).attr('data-state','Andaman and Nicobar Islands')
+          .on('mousemove',evt=>{if(!pinned){hideCityTip();showTip(evt,lbl,'Andaman and Nicobar Islands');}})
+          .on('mouseleave',()=>{if(!pinned)hideTip();})
+          .on('click',()=>{pinned=true;if(pinEl)d3.select(pinEl).classed('sel',false);pinEl=null;showPanel(lbl,'Andaman and Nicobar Islands');hideTip();});
+        svg.append('text').attr('x',cx).attr('y',cy+1).attr('text-anchor','middle').attr('font-size',6.5).attr('fill','rgba(255,255,255,.9)').attr('pointer-events','none').text(lbl);
+      });
+    } else {
+      [[.28,.25],[.54,.18],[.6,.44],[.42,.57],[.25,.68],[.65,.72]].forEach(([rx,ry])=>{
+        const cx=x+6+rx*(w-12),cy=y+22+ry*(h-50);
+        svg.append('ellipse').attr('cx',cx).attr('cy',cy).attr('rx',7).attr('ry',4.5).attr('fill',fc).attr('stroke','rgba(20,20,20,.4)').attr('stroke-width',.7).attr('class','dp').attr('data-dist','Lakshadweep Islands').attr('data-state','Lakshadweep')
+          .on('mousemove',evt=>{if(!pinned){hideCityTip();showTip(evt,'Lakshadweep Islands','Lakshadweep');}})
+          .on('mouseleave',()=>{if(!pinned)hideTip();})
+          .on('click',()=>{pinned=true;if(pinEl)d3.select(pinEl).classed('sel',false);pinEl=null;showPanel('Lakshadweep','Lakshadweep');hideTip();});
+      });
+    }
+  }
+  svg.append('text').attr('x',x+w/2).attr('y',y+13).attr('text-anchor','middle').attr('font-size',9).attr('font-weight',700).attr('fill','rgba(10,50,110,.78)').attr('pointer-events','none').text(title);
+  const subEl=svg.append('text').attr('x',x+w/2).attr('y',y+h-13).attr('text-anchor','middle').attr('font-size',7.5).attr('fill','rgba(10,50,110,.62)').attr('pointer-events','none').text(insetSub(sk));
+  insetSubEls[sk]=subEl;
+  svg.append('text').attr('x',x+w/2).attr('y',y+h-3).attr('text-anchor','middle').attr('font-size',7.5).attr('font-weight',600).attr('fill','rgba(20,100,60,.65)').attr('pointer-events','none').text('Not to scale');
+  /* Corrected geographic connector + crosshair */
+  const geoCoords={'Lakshadweep':[72.64,10.56],'Andaman and Nicobar Islands':[92.74,11.67]}[sk];
+  if(geoCoords&&proj){
+    const dot=proj(geoCoords);
+    if(dot&&!isNaN(dot[0])&&!isNaN(dot[1])){
+      const[dcx,dcy]=dot;
+      const fromX=sk==='Lakshadweep'?x+w:x;const fromY=y+h/2;
+      svg.append('line').attr('x1',fromX).attr('y1',fromY).attr('x2',dcx).attr('y2',dcy)
+        .attr('stroke','rgba(20,20,20,.28)').attr('stroke-width',.9).attr('stroke-dasharray','5,3').attr('pointer-events','none');
+      svg.append('circle').attr('cx',dcx).attr('cy',dcy).attr('r',7)
+        .attr('fill','rgba(190,240,220,.88)').attr('stroke','rgba(20,20,20,.42)').attr('stroke-width',1).attr('pointer-events','none');
+      svg.append('circle').attr('cx',dcx).attr('cy',dcy).attr('r',3)
+        .attr('fill','rgba(20,20,20,.6)').attr('pointer-events','none');
+      svg.append('line').attr('x1',dcx-11).attr('y1',dcy).attr('x2',dcx+11).attr('y2',dcy)
+        .attr('stroke','rgba(20,20,20,.5)').attr('stroke-width',.9).attr('pointer-events','none');
+      svg.append('line').attr('x1',dcx).attr('y1',dcy-11).attr('x2',dcx).attr('y2',dcy+11)
+        .attr('stroke','rgba(20,20,20,.5)').attr('stroke-width',.9).attr('pointer-events','none');
+      const label={'Lakshadweep':'Kavaratti ~10.5°N 72.6°E','Andaman and Nicobar Islands':'Port Blair ~11.7°N 92.7°E'}[sk];
+      svg.append('text').attr('x',dcx+14).attr('y',dcy-2).attr('font-size',7).attr('font-weight',600).attr('fill','rgba(10,80,50,.75)').attr('pointer-events','none').text(label);
+    }
+  }
+}
+
+const SRCS=[
+  'https://www.geoboundaries.org/api/current/gbOpen/IND/ADM2/',
+  'https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@main/topojson/india.json',
+  'https://cdn.jsdelivr.net/gh/geohacker/india@master/district/india_district.json',
+];
+async function loadJ(u){const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error(r.status);return r.json();}
+async function getFeats(){
+  for(const u of SRCS){
+    try{
+      document.getElementById('lmsg').textContent='Fetching from '+u.split('/').slice(2,4).join('/')+'…';
+      const raw=await loadJ(u);
+      if(raw.gjDownloadURL){document.getElementById('lmsg').textContent='Downloading geoBoundaries IND ADM2…';const gj=await loadJ(raw.gjDownloadURL);if(gj.features?.length>10)return gj.features;}
+      if(raw.type==='Topology'){const k=Object.keys(raw.objects).find(k=>/dist/i.test(k))||Object.keys(raw.objects)[0];return topojson.feature(raw,raw.objects[k]).features;}
+      if(raw.type==='FeatureCollection'&&raw.features?.length>10)return raw.features;
+    }catch(e){console.warn('skip',u,e.message);}
+  }
+  return null;
+}
+
+(async()=>{
+  const all=await getFeats();
+  document.getElementById('loader').style.display='none';
+  if(!all){const eb=document.getElementById('errbox');eb.style.display='flex';eb.innerHTML='<strong>Boundary data unavailable</strong><br><small>All CDN sources unreachable. Try reloading.</small>';return;}
+  const isLD=f=>/lakshadweep/i.test(sN(f.properties))||sN(f.properties)==='LD';
+  const isAN=f=>/andaman/i.test(sN(f.properties))||sN(f.properties)==='AN';
+  const main=all.filter(f=>!isLD(f)&&!isAN(f));
+  const ld=all.filter(isLD),an=all.filter(isAN);
+  const hasLD=ld.length>0,hasAN=an.length>0;
+  const W=940,H=820;
+  const svg=d3.select('#msvg');
+  svg.append('rect').attr('x',0).attr('y',0).attr('width',W).attr('height',H).attr('fill','#C8E8F5');
+  for(let iy=18;iy<H;iy+=15)
+    svg.append('line').attr('x1',0).attr('y1',iy).attr('x2',W).attr('y2',iy).attr('stroke','rgba(150,210,240,.13)').attr('stroke-width',.5).attr('pointer-events','none');
+  const mp=d3.geoMercator().fitExtent([[26,50],[760,790]],{type:'FeatureCollection',features:main});
+  const mpfn=d3.geoPath(mp);
+  drawFeats(svg.append('g'),main,mpfn);
+  drawBorders(svg,main,mpfn);
+  addCityLayer(svg,mp);
+  drawInset(svg,ld,{x:12,y:618,w:168,h:184},'Lakshadweep (UT)','Lakshadweep',hasLD,mp);
+  drawInset(svg,an,{x:768,y:368,w:162,h:424},'Andaman & Nicobar (UT)','Andaman and Nicobar Islands',hasAN,mp);
+  /* Ocean labels */
+  [[115,706,'ARABIAN SEA','SST +1.5–1.8°C · NOAA CPC · Lin et al. 2023 GRL'],
+   [618,762,'BAY OF BENGAL','SST +1.2–1.5°C · INCOIS 2026 · MHW +40 days'],
+   [430,808,'INDIAN OCEAN','SST +1.0–1.3°C · NOAA CPC · Warm pool expanding'],
+  ].forEach(([x,y,l1,l2])=>{
+    svg.append('text').attr('x',x).attr('y',y).attr('text-anchor','middle').attr('font-size',11).attr('font-weight',700).attr('fill','rgba(10,60,130,.68)').attr('letter-spacing',1.5).attr('pointer-events','none').text(l1);
+    svg.append('text').attr('x',x).attr('y',y+13).attr('text-anchor','middle').attr('font-size',8.5).attr('font-weight',600).attr('fill','rgba(20,100,60,.75)').attr('pointer-events','none').text(l2);
+  });
+  /* Category color key on canvas */
+  const lx=22,ly=28;
+  svg.append('text').attr('x',lx).attr('y',ly-7).attr('font-size',8.5).attr('font-weight',600).attr('fill','rgba(20,20,20,.65)').text('Dominant suggested intervention →');
+  Object.entries(CATS).forEach(([k,c],i)=>{
+    svg.append('rect').attr('x',lx+i*70).attr('y',ly).attr('width',68).attr('height',12).attr('fill',c.color);
+    svg.append('text').attr('x',lx+i*70+34).attr('y',ly+22).attr('text-anchor','middle').attr('font-size',7).attr('fill','rgba(20,20,20,.58)').text(c.label.replace(/^\S+\s/,'').split(' ').slice(0,2).join(' '));
+  });
+  svg.append('text').attr('x',W/2).attr('y',H-3).attr('text-anchor','middle').attr('font-size',8.5).attr('font-style','italic').attr('fill','rgba(0,0,0,.35)').attr('pointer-events','none')
+    .text('India El Niño 2027 Suggested Solutions Map v2 · Timeline from June 2026 · All interventions voluntary · Island insets not to scale · Crosshairs = geographic position · geoBoundaries ADM2 CC-BY 4.0');
+  document.getElementById('msvg').style.display='block';
+  document.getElementById('foot').textContent=
+    'Solutions Map v2.0 · All 36 states/UTs tailored solutions · '+
+    (hasLD?'✓ Lakshadweep · crosshair 10.5°N 72.6°E':'✓ Lakshadweep placeholder · crosshair 10.5°N 72.6°E')+
+    ' · '+(hasAN?'✓ A&N · crosshair 11.7°N 92.7°E':'✓ A&N placeholder · crosshair 11.7°N 92.7°E')+
+    ' · Recommend=strong evidence · Consider=medium · Explore=emerging · geoBoundaries ADM2 CC-BY 4.0';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>India El Niño 2027 — Policy Readiness Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5}
+.page{display:flex;flex-direction:column;gap:12px;padding:12px}
+#mapcol{position:relative;width:100%}
+#msvg{width:100%;height:auto;display:none;border-radius:10px}
+#loader{width:100%;aspect-ratio:940/820;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:12px;color:#666;background:#C8E8F5;border-radius:10px}
+#errbox{width:100%;aspect-ratio:940/820;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;color:#666;background:#C8E8F5;border-radius:10px;text-align:center;padding:24px}
+.dp{cursor:pointer;stroke:rgba(255,255,255,.22);stroke-width:.3;transition:opacity .08s}
+.dp:hover{stroke:rgba(255,255,255,.9);stroke-width:.9;opacity:.75}
+.dp.sel{stroke:#fff;stroke-width:1.5}
+#tip{position:absolute;background:rgba(255,255,255,.97);border:.5px solid rgba(0,0,0,.12);border-radius:9px;padding:9px 12px;pointer-events:none;display:none;z-index:60;min-width:195px;max-width:240px;box-shadow:0 3px 14px rgba(0,0,0,.09)}
+.tip-n{font-size:12px;font-weight:600;color:#111;margin-bottom:1px}
+.tip-s{font-size:9px;color:#888;margin-bottom:5px}
+.tip-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px;font-size:10px}
+.tip-lbl{color:#555;display:flex;align-items:center;gap:4px;flex:1}
+.tip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tip-val{font-weight:600}
+.tip-ci{font-size:7.5px;color:#bbb;margin-left:3px}
+.tip-act{background:rgba(0,0,0,.05);border-radius:3px;padding:1px 3px;margin:-1px -3px}
+.tip-compound{font-size:8.5px;background:#FFF3CD;color:#664D03;border-radius:4px;padding:3px 7px;margin-top:5px;display:none}
+.btm{background:#fff;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden}
+.tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:12px 12px 0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px 9px;border-radius:8px;border:.5px solid #ccc;cursor:pointer;font-family:inherit;background:#f5f5f5;color:#555;transition:all .12s;white-space:normal;word-break:break-word;text-align:center;min-width:0}
+.tab:hover:not(.on){background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);transform:translateY(-1px)}
+.tab.on{border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.tab .ico{font-size:22px;line-height:1;display:block}
+.tab .lbl{font-size:11px;font-weight:500;line-height:1.25;display:block;white-space:normal;word-break:break-word}
+.active-bar{padding:10px 12px 0;border-top:.5px solid #e0e0e0;margin-top:10px}
+.ab-row{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;flex-wrap:wrap}
+.ab-ew{font-size:8.5px;color:#888;text-transform:uppercase;letter-spacing:.06em}
+.ab-ttl{font-size:12px;font-weight:500;color:#111}
+.ab-data{font-size:8.5px;color:#888;font-style:italic;margin-left:auto}
+.ab-ci{font-size:8.5px;color:#666;background:rgba(0,0,0,.04);border-radius:4px;padding:2px 8px;margin-bottom:5px;display:inline-block}
+.ab-inv{font-size:8.5px;color:#185FA5;font-weight:600;margin-bottom:4px;display:none}
+.ab-cav{font-size:8px;color:#888;font-style:italic;margin-bottom:4px;display:none}
+.leg-bar{display:flex;height:13px;border-radius:4px;overflow:hidden}
+.leg-seg{flex:1}
+.leg-tks{display:flex;justify-content:space-between;font-size:8.5px;color:#888;margin-top:3px;margin-bottom:8px}
+.leg-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:0 12px 12px}
+.leg-card{background:#f8f8f8;border:.5px solid #e0e0e0;border-radius:8px;padding:8px 8px 6px}
+.leg-card.active{box-shadow:0 0 0 1.5px var(--c,#A32D2D)}
+.lc-head{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.lc-ico{font-size:14px;line-height:1}
+.lc-ttl{font-size:9.5px;font-weight:500;color:#111}
+.lc-unit{font-size:7.5px;color:#888;margin-left:auto}
+.lc-method{font-size:7px;color:#888;line-height:1.4;margin-bottom:4px}
+.lc-inv{font-size:7.5px;color:#185FA5;font-weight:600;margin-bottom:3px}
+.lc-cav{font-size:7px;color:#888;line-height:1.4;margin-bottom:4px}
+.lc-bar{display:flex;height:7px;border-radius:2px;overflow:hidden;margin-bottom:2px}
+.lc-tks{display:flex;justify-content:space-between;font-size:6.5px;color:#888;margin-bottom:5px}
+.lc-cat{display:flex;align-items:flex-start;gap:4px;margin-bottom:3px}
+.lc-sw{width:9px;height:9px;border-radius:2px;flex-shrink:0;margin-top:1px}
+.lc-name{font-size:8.5px;font-weight:500;color:#111;line-height:1.3}
+.lc-rng{font-size:7.5px;color:#888;line-height:1.3}
+.divl{height:.5px;background:#e0e0e0}
+.detail{padding:10px 12px 12px}
+.d-hint{font-size:11px;color:#888;font-style:italic}
+#d-content{display:none}
+.dc-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.dc-meta{flex:1;min-width:180px}
+.d-place{font-size:13px;font-weight:500;color:#111}
+.d-type{font-size:9px;color:#888;margin-top:1px}
+.d-prov{font-size:8px;color:#999;background:rgba(0,0,0,.04);border-radius:4px;padding:2px 7px;margin-top:4px;display:inline-block;line-height:1.4}
+.d-big{font-size:28px;font-weight:500;line-height:1.1;margin-top:4px;display:inline}
+.d-ci{font-size:10px;color:#bbb;margin-left:4px}
+.compound-badge{font-size:8.5px;padding:2px 8px;background:#FFF3CD;color:#664D03;border-radius:20px;font-weight:500;border:.5px solid #FFD966;display:inline-block;margin-top:4px}
+.dtags{display:flex;flex-wrap:wrap;gap:2px;margin:5px 0}
+.tg{font-size:8.5px;padding:2px 6px;border-radius:20px;font-weight:500}
+.tgr{background:#FCEBEB;color:#A32D2D}.tga{background:#FAEEDA;color:#854F0B}.tgg{background:#EAF3DE;color:#3B6D11}.tgy{background:#FFF3CD;color:#664D03}
+.bars-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px}
+.bar-cell{background:#f5f5f5;border-radius:6px;padding:6px 7px}
+.bc-lbl{font-size:8px;color:#666;margin-bottom:2px;line-height:1.3}
+.bc-val{font-size:12px;font-weight:600}
+.bc-ci{font-size:7.5px;color:#ccc;margin-left:2px}
+.bc-track{height:4px;background:rgba(0,0,0,.08);border-radius:2px;margin-top:3px;overflow:hidden}
+.bc-bar{height:100%;border-radius:2px}
+.dnote{font-size:9.5px;color:#666;line-height:1.5}
+.foot{font-size:8px;color:#888;padding:5px 12px 8px;border-top:.5px solid #e0e0e0;line-height:1.6}
+.city-dot{cursor:pointer}
+.city-dot:hover{stroke:rgba(20,20,20,.9)!important;stroke-width:1.5!important}
+#city-tip{position:absolute;background:rgba(255,255,255,.97);border:.5px solid rgba(0,80,160,.25);border-radius:9px;padding:8px 11px;pointer-events:none;display:none;z-index:65;min-width:180px;max-width:220px;box-shadow:0 3px 14px rgba(0,0,0,.12)}
+.ct-n{font-size:12px;font-weight:700;color:#111;margin-bottom:1px}
+.ct-s{font-size:9px;color:#888;margin-bottom:5px}
+.ct-row{display:flex;align-items:center;gap:5px;margin-top:3px;font-size:10px}
+.ct-note{font-size:9px;color:#555;margin-top:5px;line-height:1.4;font-style:italic;border-top:.5px solid #eee;padding-top:4px}
+</style>
+</head>
+<body>
+<div class="page">
+<div id="mapcol">
+  <div id="loader">
+    <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#bbb" stroke-width="2.5"/><path d="M12 3 A9 9 0 0 1 21 12" fill="none" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".9s" repeatCount="indefinite"/></path></svg>
+    <span id="lmsg">Fetching India district boundaries…</span>
+  </div>
+  <div id="errbox"></div>
+  <div id="tip">
+    <div class="tip-n" id="tn"></div>
+    <div class="tip-s" id="ts"></div>
+    <div class="tip-row" id="tr1"><span class="tip-lbl"><span class="tip-dot" id="td1"></span>Max temp<span class="tip-ci">±1.5°C</span></span><span class="tip-val" id="tv1"></span></div>
+    <div class="tip-row" id="tr2"><span class="tip-lbl"><span class="tip-dot" style="background:#3B6D11"></span>Agri impact<span class="tip-ci">±8</span></span><span class="tip-val" id="tv2"></span></div>
+    <div class="tip-row" id="tr3"><span class="tip-lbl"><span class="tip-dot" style="background:#854F0B"></span>Food inflation<span class="tip-ci">±1.5%</span></span><span class="tip-val" id="tv3"></span></div>
+    <div class="tip-row" id="tr4"><span class="tip-lbl"><span class="tip-dot" id="td4"></span>Reservoir ↑safer<span class="tip-ci">±8%</span></span><span class="tip-val" id="tv4"></span></div>
+    <div class="tip-row" id="tr5"><span class="tip-lbl"><span class="tip-dot" style="background:#D85A30"></span>MGNREGS<span class="tip-ci">±10</span></span><span class="tip-val" id="tv5"></span></div>
+    <div class="tip-row" id="tr6"><span class="tip-lbl"><span class="tip-dot" style="background:#A32D2D"></span>Heatwave†<span class="tip-ci">±7d</span></span><span class="tip-val" id="tv6"></span></div>
+    <div class="tip-compound" id="tc">⚠ Compound flood-drought risk</div>
+  </div>
+  <div id="city-tip">
+    <div class="ct-n" id="ct-n"></div>
+    <div class="ct-s" id="ct-s"></div>
+    <div class="ct-row"><span style="color:#888;font-size:9px">Population</span><span id="ct-pop" style="font-weight:600;margin-left:6px;font-size:10px"></span></div>
+    <div class="ct-row"><span style="color:#888;font-size:9px">Temp 2027</span><span id="ct-temp" style="font-weight:600;margin-left:6px;font-size:10px"></span></div>
+    <div class="ct-row"><span style="color:#888;font-size:9px">Heatwave days</span><span id="ct-heat" style="font-weight:600;margin-left:6px;font-size:10px"></span></div>
+    <div class="ct-note" id="ct-note"></div>
+  </div>
+  <svg id="msvg" viewBox="0 0 940 820" xmlns="http://www.w3.org/2000/svg"></svg>
+</div>
+
+<div class="btm">
+  <div class="tabs">
+    <button class="tab on" style="background:#A32D2D" onclick="setMode('temp',this,'#A32D2D')"><span class="ico">🌡</span><span class="lbl">Temperature</span></button>
+    <button class="tab" onclick="setMode('agri',this,'#3B6D11')"><span class="ico">🌾</span><span class="lbl">Agriculture</span></button>
+    <button class="tab" onclick="setMode('infl',this,'#854F0B')"><span class="ico">📈</span><span class="lbl">Food Inflation</span></button>
+    <button class="tab" onclick="setMode('res',this,'#185FA5')"><span class="ico">💧</span><span class="lbl">Reservoir</span></button>
+    <button class="tab" onclick="setMode('mgnregs',this,'#D85A30')"><span class="ico">👷</span><span class="lbl">MGNREGS Distress</span></button>
+    <button class="tab" onclick="setMode('heat',this,'#6B1414')"><span class="ico">🔥</span><span class="lbl">Heatwave Days</span></button>
+  </div>
+  <div class="active-bar">
+    <div class="ab-row">
+      <span class="ab-ew" id="ab-ew">temperature</span>
+      <span class="ab-ttl" id="ab-ttl">Max temperature 2027 (°C)</span>
+      <span class="ab-data">State-level data · District typology variance applied</span>
+    </div>
+    <div class="ab-ci" id="ab-ci">Confidence interval: ±1.5°C · CMIP6 ensemble + IMD historical patterns</div>
+    <div class="ab-inv" id="ab-inv">⬆ Higher % = More water stored = Safer &nbsp;|&nbsp; Red/dark = drought emergency</div>
+    <div class="ab-cav" id="ab-cav">† Pre-monsoon only (Apr–Jun) · Post-monsoon heat risk (Oct–Nov) not included</div>
+    <div class="leg-bar" id="leg-bar"></div>
+    <div class="leg-tks" id="leg-tks"></div>
+  </div>
+  <div class="leg-grid">
+    <div class="leg-card active" id="lc-temp" style="--c:#A32D2D">
+      <div class="lc-head"><span class="lc-ico">🌡</span><span class="lc-ttl">Temperature</span><span class="lc-unit">°C · ±1.5°</span></div>
+      <div class="lc-bar"><div style="flex:1;background:#FAEEDA"></div><div style="flex:1;background:#FAD89A"></div><div style="flex:1;background:#EF9F27"></div><div style="flex:1;background:#D85A30"></div><div style="flex:1;background:#A32D2D"></div><div style="flex:1;background:#6B1414"></div></div>
+      <div class="lc-tks"><span>28°</span><span>32°</span><span>36°</span><span>40°</span><span>44°</span><span>48°</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#FAEEDA"></div><div><div class="lc-name">Hills / cool ≤31°C</div><div class="lc-rng">Himalayan, NE, islands</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#FAD89A"></div><div><div class="lc-name">Moderate 32–35°C</div><div class="lc-rng">Coastal & forested</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#EF9F27"></div><div><div class="lc-name">Warm 36–39°C</div><div class="lc-rng">Peninsular India</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D85A30"></div><div><div class="lc-name">Hot 40–43°C</div><div class="lc-rng">Central & east plains</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#A32D2D"></div><div><div class="lc-name">Severe 44–46°C</div><div class="lc-rng">IGP, Deccan, Telangana</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#6B1414"></div><div><div class="lc-name">Extreme ≥47°C</div><div class="lc-rng">Raj, UP — record risk</div></div></div>
+    </div>
+    <div class="leg-card" id="lc-agri" style="--c:#3B6D11">
+      <div class="lc-head"><span class="lc-ico">🌾</span><span class="lc-ttl">Agriculture</span><span class="lc-unit">0–100 · ±8</span></div>
+      <div class="lc-bar"><div style="flex:1;background:#639922"></div><div style="flex:1;background:#97C459"></div><div style="flex:1;background:#EF9F27"></div><div style="flex:1;background:#D85A30"></div><div style="flex:1;background:#E24B4A"></div><div style="flex:1;background:#A32D2D"></div></div>
+      <div class="lc-tks"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#639922"></div><div><div class="lc-name">Low 0–49</div><div class="lc-rng">Irrigated / buffered</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#EF9F27"></div><div><div class="lc-name">Moderate 50–64</div><div class="lc-rng">Mixed rainfed</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D85A30"></div><div><div class="lc-name">High risk 65–79</div><div class="lc-rng">Kharif crops threatened</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#E24B4A"></div><div><div class="lc-name">Critical 80–100</div><div class="lc-rng">Severe yield loss</div></div></div>
+    </div>
+    <div class="leg-card" id="lc-infl" style="--c:#854F0B">
+      <div class="lc-head"><span class="lc-ico">📈</span><span class="lc-ttl">Food Inflation</span><span class="lc-unit">% · ±1.5%</span></div>
+      <div class="lc-bar"><div style="flex:1;background:#639922"></div><div style="flex:1;background:#C0DD97"></div><div style="flex:1;background:#EF9F27"></div><div style="flex:1;background:#D85A30"></div><div style="flex:1;background:#E24B4A"></div><div style="flex:1;background:#A32D2D"></div></div>
+      <div class="lc-tks"><span>+3%</span><span>+5%</span><span>+7%</span><span>+9%</span><span>+11%</span><span>+14%</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#639922"></div><div><div class="lc-name">Low 3–6%</div><div class="lc-rng">Islands, hill states</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#EF9F27"></div><div><div class="lc-name">Elevated 7–8%</div><div class="lc-rng">Coastal & NE states</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D85A30"></div><div><div class="lc-name">High 9–11%</div><div class="lc-rng">Major agri states</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#E24B4A"></div><div><div class="lc-name">Severe 12–14%</div><div class="lc-rng">Raj, UP, MP, Telangana</div></div></div>
+    </div>
+    <div class="leg-card" id="lc-res" style="--c:#185FA5">
+      <div class="lc-head"><span class="lc-ico">💧</span><span class="lc-ttl">Reservoir</span><span class="lc-unit">% live · ±8%</span></div>
+      <div class="lc-inv">⬆ Higher % = More water = Safer</div>
+      <div class="lc-bar"><div style="flex:1;background:#6B1414"></div><div style="flex:1;background:#A32D2D"></div><div style="flex:1;background:#D85A30"></div><div style="flex:1;background:#EF9F27"></div><div style="flex:1;background:#85B7EB"></div><div style="flex:1;background:#185FA5"></div></div>
+      <div class="lc-tks"><span>&lt;20</span><span>25</span><span>35</span><span>45</span><span>60</span><span>&gt;65%</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#6B1414"></div><div><div class="lc-name">Emergency &lt;20%</div><div class="lc-rng">Drought trigger</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#A32D2D"></div><div><div class="lc-name">Critical 21–30%</div><div class="lc-rng">Pre-alert zone</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D85A30"></div><div><div class="lc-name">Low 31–40%</div><div class="lc-rng">Watch zone</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#EF9F27"></div><div><div class="lc-name">Stressed 41–55%</div><div class="lc-rng">Monitor</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#185FA5"></div><div><div class="lc-name">Adequate &gt;55%</div><div class="lc-rng">Safe — NE, Kerala, hills</div></div></div>
+    </div>
+    <div class="leg-card" id="lc-mgnregs" style="--c:#D85A30">
+      <div class="lc-head"><span class="lc-ico">👷</span><span class="lc-ttl">MGNREGS Distress</span><span class="lc-unit">0–100 · ±10</span></div>
+      <div class="lc-method">Index = rainfall deficit(35%) + rainfed area(30%) + agri labour(20%) + historic demand 2009/15(15%)</div>
+      <div class="lc-bar"><div style="flex:1;background:#EAF3DE"></div><div style="flex:1;background:#C0DD97"></div><div style="flex:1;background:#EF9F27"></div><div style="flex:1;background:#D85A30"></div><div style="flex:1;background:#A32D2D"></div><div style="flex:1;background:#6B1414"></div></div>
+      <div class="lc-tks"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#EAF3DE"></div><div><div class="lc-name">Normal 0–34</div><div class="lc-rng">Baseline demand</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#EF9F27"></div><div><div class="lc-name">Elevated 35–49</div><div class="lc-rng">Monitor for surge</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D85A30"></div><div><div class="lc-name">High 50–64</div><div class="lc-rng">Advance allocation</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#A32D2D"></div><div><div class="lc-name">Severe 65–79</div><div class="lc-rng">Pre-position funds</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#6B1414"></div><div><div class="lc-name">Crisis 80+</div><div class="lc-rng">Pre-activate — Raj, UP, MP</div></div></div>
+    </div>
+    <div class="leg-card" id="lc-heat" style="--c:#6B1414">
+      <div class="lc-head"><span class="lc-ico">🔥</span><span class="lc-ttl">Pre-monsoon Heatwave†</span><span class="lc-unit">days · ±7d</span></div>
+      <div class="lc-cav">† Apr–Jun only. Post-monsoon (Oct–Nov) not shown.</div>
+      <div class="lc-bar"><div style="flex:1;background:#FAEEDA"></div><div style="flex:1;background:#FAD89A"></div><div style="flex:1;background:#EF9F27"></div><div style="flex:1;background:#D85A30"></div><div style="flex:1;background:#A32D2D"></div><div style="flex:1;background:#6B1414"></div></div>
+      <div class="lc-tks"><span>0</span><span>10</span><span>20</span><span>30</span><span>45</span><span>60+</span></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#FAEEDA"></div><div><div class="lc-name">Minimal 0–9 days</div><div class="lc-rng">Hills, coastal, NE</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#FAD89A"></div><div><div class="lc-name">Low 10–19 days</div><div class="lc-rng">TN, Karnataka coast</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#EF9F27"></div><div><div class="lc-name">Moderate 20–34 days</div><div class="lc-rng">Assam, WB, Odisha</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#D85A30"></div><div><div class="lc-name">High 35–49 days</div><div class="lc-rng">Bihar, UP, MP, Telangana</div></div></div>
+      <div class="lc-cat"><div class="lc-sw" style="background:#6B1414"></div><div><div class="lc-name">Extreme 50+ days</div><div class="lc-rng">Health emergency — Delhi, Raj</div></div></div>
+    </div>
+  </div>
+  <div class="divl"></div>
+  <div class="detail">
+    <div id="d-hint" class="d-hint">Hover any district or city dot · All values = state baseline + climate typology + terrain adjustment · ±CI shown · Click to pin</div>
+    <div id="d-content">
+      <div class="dc-top">
+        <div class="dc-meta">
+          <div class="d-place" id="dp"></div>
+          <div class="d-type" id="dt"></div>
+          <span class="d-prov" id="d-prov"></span>
+          <div style="margin-top:4px">
+            <span class="d-big" id="dbig"></span>
+            <span class="d-ci" id="d-ci"></span>
+          </div>
+          <div id="compound-badge"></div>
+        </div>
+        <div class="dtags" id="dtags" style="align-self:flex-start;margin-top:24px"></div>
+      </div>
+      <div class="bars-grid" id="bars-grid"></div>
+      <div class="dnote" id="dnote"></div>
+    </div>
+  </div>
+  <div class="foot" id="foot">
+    India — El Niño 2027 Policy Readiness Dashboard v2.0 · State-level data, district typology variance applied · CMIP6 ±CI ranges ·
+    MGNREGS index: rainfall deficit(35%) + rainfed(30%) + labour(20%) + historic demand(15%) · † Heatwave = pre-monsoon Apr–Jun only ·
+    Reservoir: ↑higher = safer · Hover city dots for city-level data · Island insets geographically positioned with crosshairs ·
+    Sources: IMD · CWC · CGWB · NOAA CPC · Lin et al. 2023 GRL · INCOIS 2026 · geoBoundaries ADM2 CC-BY 4.0 · Boundaries per Govt of India
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════
+   CLIMATE TYPOLOGY MODEL — FIX 1
+═══════════════════════════════════════════════ */
+const TYPO_MAP={
+  'Rajasthan':'arid','Gujarat':'arid','Chandigarh':'arid',
+  'Madhya Pradesh':'semi_arid','Maharashtra':'semi_arid','Telangana':'semi_arid',
+  'Andhra Pradesh':'semi_arid','Karnataka':'semi_arid','Haryana':'semi_arid','Punjab':'semi_arid','Delhi':'semi_arid',
+  'Uttar Pradesh':'sub_humid','Bihar':'sub_humid','West Bengal':'sub_humid','Odisha':'sub_humid',
+  'Chhattisgarh':'sub_humid','Jharkhand':'sub_humid','Tripura':'sub_humid','Assam':'sub_humid',
+  'Kerala':'humid','Goa':'humid','Tamil Nadu':'humid','Puducherry':'humid',
+  'Dadra and Nagar Haveli and Daman and Diu':'humid',
+  'Jammu and Kashmir':'mountain','Ladakh':'mountain','Himachal Pradesh':'mountain','Uttarakhand':'mountain',
+  'Sikkim':'mountain','Arunachal Pradesh':'mountain','Nagaland':'mountain','Manipur':'mountain','Mizoram':'mountain','Meghalaya':'mountain',
+  'Lakshadweep':'island','Andaman and Nicobar Islands':'island',
+};
+const COMPOUND_STATES=new Set(['Bihar','Assam','West Bengal','Odisha','Uttar Pradesh']);
+
+function distAdjust(d){
+  if(/shimla|kullu|lahaul|spiti|kinnaur|kargil|leh|chamba|tawang|upper.siang/.test(d))return{dt:-5,dh:-14,da:-12,dn:'High altitude — significant cooling'};
+  if(/darjeeling|kohima|senapati|almora|chamoli|pithoragarh|uttarkashi|kangra|mandi/.test(d))return{dt:-3,dh:-8,da:-7,dn:'Hill district — moderate cooling'};
+  if(/itanagar|aizawl|gangtok|shillong/.test(d))return{dt:-3,dh:-7,da:-6,dn:'NE hill district'};
+  if(/jaisalmer|barmer|bikaner|churu|hanumangarh|ganganagar/.test(d))return{dt:3,dh:16,da:5,dn:'Extreme arid — highest heat exposure'};
+  if(/thar|kutch|patan|banaskantha|sikar|nagaur/.test(d))return{dt:2,dh:10,da:4,dn:'Arid zone — very high heat'};
+  if(/kochi|ernakulam|thiruvananthapuram|kozhikode|thrissur|alappuzha|malappuram/.test(d))return{dt:-2,dh:-8,da:-4,dn:'Kerala coast — ocean humidity buffer'};
+  if(/mangaluru|dakshina.kannada|udupi/.test(d))return{dt:-2,dh:-6,da:-3,dn:'West coast — Arabian Sea buffer'};
+  if(/chennai|tiruvallur|kanchipuram|visakhapatnam/.test(d))return{dt:-1,dh:-4,da:-2,dn:'East coast — partial BoB buffer'};
+  if(/nagpur|amravati|yavatmal|wardha|chandrapur/.test(d))return{dt:1,dh:8,da:3,dn:'Vidarbha interior — heat amplification'};
+  if(/nalgonda|mahbubnagar|kurnool|anantapur/.test(d))return{dt:1,dh:6,da:3,dn:'Interior Deccan — high heat'};
+  if(/banda|jhansi|lalitpur|mahoba/.test(d))return{dt:1,dh:7,da:4,dn:'Bundelkhand — heat and drought convergence'};
+  return{dt:0,dh:0,da:0,dn:null};
+}
+
+const CI_VALS={t:'±1.5°C',a:'±8 pts',i:'±1.5%',r:'±8%',m:'±10 pts',h:'±7 days'};
+
+/* STATE DATA */
+const SD={
+  'Ladakh':{t:28,a:22,i:3,r:72,m:12,h:2,tp:'Union Territory',n:'Cold desert. Glacial melt accelerating. Very low El Niño land impact.'},
+  'Jammu and Kashmir':{t:31,a:42,i:5,r:58,m:28,h:8,tp:'Union Territory',n:'Apple orchards face heat stress. Jammu plains spike May–June.'},
+  'Himachal Pradesh':{t:33,a:50,i:6,r:61,m:22,h:5,tp:'State',n:'Bhakra critical for downstream. Apple and potato decline at lower elevations.'},
+  'Punjab':{t:43,a:68,i:9,r:38,m:55,h:32,tp:'State',n:'Wheat belt extreme heat. 78% groundwater over-exploited. Bhakra-Beas at 38%.'},
+  'Haryana':{t:44,a:72,i:10,r:34,m:62,h:38,tp:'State',n:'Yamuna critically depleted. MGNREGS demand surge expected Jul–Aug.'},
+  'Delhi':{t:46,a:20,i:11,r:28,m:30,h:48,tp:'Union Territory',n:'Urban heat island. 48+ extreme days. Yamuna at historic low.'},
+  'Uttarakhand':{t:34,a:52,i:7,r:55,m:30,h:10,tp:'State',n:'Tehri at 55%. Hill crops moderate. Haridwar spike May–Jun.'},
+  'Uttar Pradesh':{t:45,a:82,i:12,r:32,m:78,h:42,tp:'State',n:'Highest MGNREGS distress nationally. 80% rainfed. Bundelkhand critical.',compound:true},
+  'Rajasthan':{t:48,a:88,i:14,r:18,m:88,h:65,tp:'State',n:'Bisalpur at 18%. All-time temperature records likely. Drought probability >70%.'},
+  'Gujarat':{t:44,a:72,i:11,r:35,m:52,h:35,tp:'State',n:'Sardar Sarovar at 35%. Saurashtra critical. Arabian Sea SST +1.8°C.'},
+  'Madhya Pradesh':{t:46,a:85,i:13,r:31,m:80,h:44,tp:'State',n:'Narmada, Chambal, Tawa below 35%. Core monsoon belt worst hit.'},
+  'Maharashtra':{t:43,a:80,i:13,r:29,m:75,h:36,tp:'State',n:'Jayakwadi, Koyna at 29%. Second consecutive drought risk.'},
+  'Goa':{t:35,a:40,i:6,r:68,m:18,h:6,tp:'State',n:'Salaulim adequate. Coastal humidity buffer.'},
+  'Karnataka':{t:40,a:68,i:10,r:42,m:45,h:22,tp:'State',n:'KRS at 42%. North dryland exposed. Cauvery stress.'},
+  'Telangana':{t:44,a:83,i:13,r:27,m:72,h:40,tp:'State',n:'Srisailam at 27%. MGNREGS surge 18 districts.'},
+  'Andhra Pradesh':{t:44,a:80,i:12,r:30,m:65,h:38,tp:'State',n:'Krishna, Godavari 40% below normal.'},
+  'Tamil Nadu':{t:38,a:62,i:9,r:48,m:42,h:18,tp:'State',n:'NE monsoon partially compensates. Mettur at 48%.'},
+  'Kerala':{t:34,a:45,i:7,r:62,m:25,h:8,tp:'State',n:'Idukki at 62%. Lakshadweep coral bleaching HIGH RISK — Arabian Sea +1.5°C.'},
+  'Odisha':{t:44,a:78,i:11,r:38,m:60,h:35,tp:'State',n:'Hirakud at 38%. Mahanadi 35% deficit.',compound:true},
+  'Jharkhand':{t:43,a:74,i:10,r:33,m:68,h:30,tp:'State',n:'Maithon, Panchet at 33%. Tribal rainfed maximum vulnerability.'},
+  'Bihar':{t:43,a:76,i:11,r:40,m:65,h:32,tp:'State',n:'Ganga 40% below normal. Compound flood-drought risk.',compound:true},
+  'Chhattisgarh':{t:44,a:80,i:12,r:35,m:70,h:33,tp:'State',n:'Hasdeo, Mahanadi stressed. Rice bowl at acute risk.'},
+  'West Bengal':{t:40,a:65,i:9,r:45,m:48,h:22,tp:'State',n:'DVC at 45%. Jute and rice disrupted.',compound:true},
+  'Sikkim':{t:28,a:30,i:4,r:70,m:10,h:2,tp:'State',n:'Teesta adequate. Mountain buffer. Minimal exposure.'},
+  'Assam':{t:38,a:60,i:8,r:55,m:38,h:12,tp:'State',n:'Tea yield decline. Boro rice vulnerable.',compound:true},
+  'Arunachal Pradesh':{t:32,a:35,i:5,r:68,m:18,h:4,tp:'State',n:'Forest terrain buffers. Adequate flows.'},
+  'Nagaland':{t:32,a:38,i:5,r:60,m:20,h:5,tp:'State',n:'Hill terrain insulated. Doyang adequate.'},
+  'Manipur':{t:33,a:44,i:6,r:58,m:25,h:6,tp:'State',n:'Loktak moderate. Valley rice some stress.'},
+  'Mizoram':{t:32,a:40,i:5,r:62,m:18,h:4,tp:'State',n:'High rainfall terrain. Tlawng adequate.'},
+  'Tripura':{t:36,a:50,i:7,r:52,m:30,h:10,tp:'State',n:'Gomati at 52%. Rice and rubber moderate.'},
+  'Meghalaya':{t:30,a:38,i:5,r:70,m:15,h:3,tp:'State',n:'Cherrapunji belt insulated. Umiam adequate.'},
+  'Chandigarh':{t:44,a:15,i:10,r:30,m:20,h:38,tp:'Union Territory',n:'Urban UT. Sukhna critically low. 38+ extreme days.'},
+  'Puducherry':{t:37,a:50,i:8,r:50,m:28,h:15,tp:'Union Territory',n:'Coastal UT. Bay of Bengal SST +1.2°C.'},
+  'Lakshadweep':{t:32,a:30,i:5,r:75,m:10,h:3,tp:'Union Territory',n:'CORAL BLEACHING HIGH RISK — Arabian Sea SST +1.5–1.8°C. Fisheries –20–25%.'},
+  'Andaman and Nicobar Islands':{t:32,a:30,i:4,r:72,m:10,h:4,tp:'Union Territory',n:'Bay of Bengal SST +1.2–1.5°C. Marine heatwaves +40 days. Coral bleaching HIGH.'},
+  'Dadara and Nagar Haveli and Daman and Diu':{t:38,a:45,i:7,r:45,m:25,h:18,tp:'Union Territory',n:'Coastal UT. Arabian Sea buffer.'},
+};
+
+/* CITY DATA — for city-level hover */
+const CITIES=[
+  ['Delhi',28.61,77.21,'Delhi',32.9,'Urban heat island — 48+ extreme days · Yamuna at historic low'],
+  ['Mumbai',19.08,72.88,'Maharashtra',20.7,'Coastal buffer but Jayakwadi supply crisis upstream'],
+  ['Bengaluru',12.97,77.59,'Karnataka',12.8,'Urban tree canopy gap — heat island growing'],
+  ['Hyderabad',17.39,78.49,'Telangana',10.5,'Srisailam at 27% — water supply risk 2027'],
+  ['Chennai',13.08,80.27,'Tamil Nadu',10.9,'Bay of Bengal SST +1.2°C — coastal heat stress'],
+  ['Kolkata',22.57,88.36,'West Bengal',14.8,'Compound cyclone-drought risk · DVC at 45%'],
+  ['Ahmedabad',23.02,72.57,'Gujarat',8.4,'Extreme heat — 35+ heatwave days projected'],
+  ['Pune',18.52,73.86,'Maharashtra',7.4,'Khadakwasla reservoir stress'],
+  ['Jaipur',26.91,75.79,'Rajasthan',4.0,'Bisalpur at 18% — drinking water risk HIGH'],
+  ['Lucknow',26.85,80.95,'Uttar Pradesh',3.7,'78/100 MGNREGS distress index — highest nationally'],
+  ['Bhopal',23.25,77.41,'Madhya Pradesh',2.4,'Kolar reservoir at 31% — watch zone'],
+  ['Patna',25.60,85.13,'Bihar',2.5,'Compound flood-drought — drought Jun, flood Aug'],
+  ['Bhubaneswar',20.30,85.82,'Odisha',1.0,'Hirakud at 38% — compound risk state'],
+  ['Guwahati',26.18,91.74,'Assam',1.1,'Brahmaputra compound flood-drought risk'],
+  ['Chandigarh',30.73,76.78,'Chandigarh',1.2,'Sukhna critically low · 38+ extreme days'],
+  ['Thiruvananthapuram',8.52,76.94,'Kerala',1.0,'Arabian Sea SST +1.5°C — coral bleach alert'],
+  ['Visakhapatnam',17.69,83.22,'Andhra Pradesh',2.1,'Bay of Bengal warming — fisheries disruption'],
+  ['Nagpur',21.15,79.09,'Maharashtra',2.9,'Vidarbha heat core — 36+ heatwave days'],
+  ['Surat',21.17,72.83,'Gujarat',6.5,'Coastal buffer — but Ukai reservoir at 35%'],
+  ['Kavaratti',10.56,72.64,'Lakshadweep',0.01,'UT capital — coral bleaching HIGH RISK · SST +1.8°C'],
+  ['Port Blair',11.67,92.74,'Andaman and Nicobar Islands',0.1,'BoB SST +1.5°C · MHW +40 days · cyclone risk'],
+];
+
+function getD(dist,state){
+  const sd=SD[state]||{t:36,a:45,i:7,r:45,m:35,h:15,tp:'—',n:'—'};
+  const dl=(dist||'').toLowerCase();const adj=distAdjust(dl);
+  const typo=TYPO_MAP[state]||'sub_humid';
+  return{t:Math.min(50,Math.max(26,sd.t+adj.dt)),a:Math.min(100,Math.max(5,sd.a+adj.da)),i:sd.i,r:sd.r,m:sd.m,h:Math.min(80,Math.max(0,sd.h+adj.dh)),tp:sd.tp,n:sd.n,compound:sd.compound||COMPOUND_STATES.has(state),typo,dist_note:adj.dn};
+}
+
+const tC=t=>t>=47?'#6B1414':t>=44?'#A32D2D':t>=40?'#D85A30':t>=36?'#EF9F27':t>=32?'#FAD89A':'#FAEEDA';
+const aC=a=>a>=80?'#E24B4A':a>=65?'#D85A30':a>=50?'#EF9F27':'#639922';
+const iC=i=>i>=12?'#E24B4A':i>=9?'#D85A30':i>=7?'#EF9F27':'#639922';
+const rC=r=>r<=20?'#6B1414':r<=30?'#A32D2D':r<=40?'#D85A30':r<=55?'#EF9F27':r<=65?'#85B7EB':'#185FA5';
+const mC=m=>m>=80?'#6B1414':m>=65?'#A32D2D':m>=50?'#D85A30':m>=35?'#EF9F27':'#EAF3DE';
+const hC=h=>h>=50?'#6B1414':h>=35?'#A32D2D':h>=20?'#D85A30':h>=10?'#EF9F27':'#FAEEDA';
+const CFNS=[tC,aC,iC,rC,mC,hC];
+const MODES=['temp','agri','infl','res','mgnregs','heat'];
+const KEYS=['t','a','i','r','m','h'];
+const ICONS=['🌡','🌾','📈','💧','👷','🔥'];
+const LBLS=['Max temp','Agriculture','Food Infl.','Reservoir ↑safer','MGNREGS','Heat† (Apr–Jun)'];
+const FMTS=[v=>v+'°C',v=>v+'/100',v=>'+'+v+'%',v=>v+'%',v=>v+'/100',v=>v+'d'];
+const BWF=[v=>((v-25)/25*100)+'%',v=>v+'%',v=>(v/14*100)+'%',v=>v+'%',v=>v+'%',v=>(v/80*100)+'%'];
+const BGS=['#FCEBEB','#EAF3DE','#FAEEDA','#E6F1FB','#FAECE7','#FCEBEB'];
+const LEGS_META={
+  temp:{ew:'temperature',ttl:'Max temperature 2027 (°C)',ci:'±1.5°C · CMIP6 ensemble + IMD historical',segs:['#FAEEDA','#FAD89A','#EF9F27','#D85A30','#A32D2D','#6B1414'],tks:['28°','32°','36°','40°','44°','48°']},
+  agri:{ew:'agri impact',ttl:'Agricultural impact (0–100)',ci:'±8 pts',segs:['#639922','#97C459','#EF9F27','#D85A30','#E24B4A','#A32D2D'],tks:['0','20','40','60','80','100']},
+  infl:{ew:'food inflation',ttl:'Food inflation risk (%)',ci:'±1.5%',segs:['#639922','#C0DD97','#EF9F27','#D85A30','#E24B4A','#A32D2D'],tks:['+3%','+5%','+7%','+9%','+11%','+14%']},
+  res:{ew:'reservoir storage',ttl:'Reservoir — % of live capacity',ci:'±8%',segs:['#6B1414','#A32D2D','#D85A30','#EF9F27','#85B7EB','#185FA5'],tks:['<20%','25','35','45','60','>65%']},
+  mgnregs:{ew:'mgnregs distress',ttl:'MGNREGS distress index (0–100)',ci:'±10 pts',segs:['#EAF3DE','#C0DD97','#EF9F27','#D85A30','#A32D2D','#6B1414'],tks:['0','20','40','60','80','100']},
+  heat:{ew:'pre-monsoon heatwave†',ttl:'Pre-monsoon heatwave days Apr–Jun (>44°C)',ci:'±7 days',segs:['#FAEEDA','#FAD89A','#EF9F27','#D85A30','#A32D2D','#6B1414'],tks:['0','10','20','30','45','60+']},
+};
+const LC_IDS={temp:'lc-temp',agri:'lc-agri',infl:'lc-infl',res:'lc-res',mgnregs:'lc-mgnregs',heat:'lc-heat'};
+const TAB_COLORS={temp:'#A32D2D',agri:'#3B6D11',infl:'#854F0B',res:'#185FA5',mgnregs:'#D85A30',heat:'#6B1414'};
+
+function norm(s){const m={'Jammu & Kashmir':'Jammu and Kashmir','Orissa':'Odisha','Uttaranchal':'Uttarakhand','Pondicherry':'Puducherry','Andaman & Nicobar':'Andaman and Nicobar Islands','Andaman And Nicobar Islands':'Andaman and Nicobar Islands'};return m[s]||s;}
+function gp(p,ks){for(const k of ks)if(p[k])return p[k];return '';}
+function dN(p){return gp(p,['shapeName','district','DISTRICT','NAME_2','name','NAME','dtname']);}
+function sN(p){return norm(gp(p,['shapeGroup','state','STATE','NAME_1','st_nm','stname']));}
+
+let mode='temp',pinned=false,pinEl=null;
+function fillF(dist,state){const d=getD(dist,state);return CFNS[MODES.indexOf(mode)](d[KEYS[MODES.indexOf(mode)]]);}
+
+let svgG=null,mainProjG=null;
+const insetSubEls={};
+
+function insetSub(stateKey){
+  const d=getD(stateKey,stateKey);const ki=MODES.indexOf(mode);
+  const vals={temp:d.t,agri:d.a,infl:d.i,res:d.r,mgnregs:d.m,heat:d.h};
+  const v=vals[mode];const vStr=FMTS[ki](v);
+  const seaNote={'Lakshadweep':'Arabian Sea · SST +1.5–1.8°C','Andaman and Nicobar Islands':'Bay of Bengal · SST +1.2–1.5°C'}[stateKey]||'';
+  return`${LEGS_META[mode].ew}: ${vStr} · ${seaNote.split('·')[0].trim()}`;
+}
+
+let canvasLegG=null;
+function rebuildCanvasLeg(svg){
+  if(canvasLegG)canvasLegG.remove();
+  const L=LEGS_META[mode];const lx=22,ly=28;
+  const g=svg.append('g');canvasLegG=g;
+  g.append('text').attr('x',lx).attr('y',ly-7).attr('font-size',8.5).attr('font-weight',600).attr('fill','rgba(20,20,20,.65)').text(L.ew.charAt(0).toUpperCase()+L.ew.slice(1)+' 2027 →');
+  L.segs.forEach((c,i)=>{
+    g.append('rect').attr('x',lx+i*70).attr('y',ly).attr('width',69).attr('height',12).attr('fill',c);
+    g.append('text').attr('x',lx+i*70+34).attr('y',ly+22).attr('text-anchor','middle').attr('font-size',7.5).attr('fill','rgba(20,20,20,.58)').text(L.tks[i]);
+  });
+  if(mode==='res')g.append('text').attr('x',lx).attr('y',ly+33).attr('font-size',8).attr('font-style','italic').attr('fill','#185FA5').text('⬆ Higher % = safer   Red = drought emergency');
+  if(mode==='heat')g.append('text').attr('x',lx).attr('y',ly+33).attr('font-size',7.5).attr('font-style','italic').attr('fill','rgba(80,80,80,.7)').text('† Apr–Jun only · post-monsoon risk not shown');
+}
+
+function updateActiveLeg(){
+  const L=LEGS_META[mode];
+  document.getElementById('ab-ew').textContent=L.ew;
+  document.getElementById('ab-ttl').textContent=L.ttl;
+  document.getElementById('ab-ci').textContent='Confidence interval: '+L.ci;
+  document.getElementById('ab-inv').style.display=mode==='res'?'block':'none';
+  document.getElementById('ab-cav').style.display=mode==='heat'?'block':'none';
+  document.getElementById('leg-bar').innerHTML=L.segs.map(c=>`<div class="leg-seg" style="background:${c}"></div>`).join('');
+  document.getElementById('leg-tks').innerHTML=L.tks.map(t=>`<span>${t}</span>`).join('');
+  Object.entries(LC_IDS).forEach(([md,id])=>{const el=document.getElementById(id);if(el){el.classList.toggle('active',md===mode);el.style.setProperty('--c',TAB_COLORS[md]);}});
+}
+updateActiveLeg();
+
+function setMode(md,btn,color){
+  mode=md;
+  document.querySelectorAll('.tab').forEach(b=>{b.classList.remove('on');b.style.background='';b.style.color='';});
+  btn.classList.add('on');btn.style.background=color;btn.style.color='#fff';
+  updateActiveLeg();
+  d3.selectAll('.dp').attr('fill',function(){return fillF(this.dataset.dist||'',this.dataset.state||'');});
+  if(svgG)rebuildCanvasLeg(svgG);
+  Object.entries(insetSubEls).forEach(([k,el])=>el.text(insetSub(k)));
+  if(mainProjG)updateCityDots(mainProjG);
+}
+
+function hideCityTip(){document.getElementById('city-tip').style.display='none';}
+function showCityTip(evt,name,state,pop,note){
+  const d=getD(name,state);
+  document.getElementById('ct-n').textContent=name;
+  document.getElementById('ct-s').textContent=state+' · City';
+  document.getElementById('ct-pop').textContent=pop+'M residents';
+  document.getElementById('ct-temp').textContent=d.t+'°C projected';document.getElementById('ct-temp').style.color=tC(d.t);
+  document.getElementById('ct-heat').textContent=d.h+' days (Apr–Jun)';document.getElementById('ct-heat').style.color=hC(d.h);
+  document.getElementById('ct-note').textContent=note;
+  const wrap=document.getElementById('mapcol');const r=wrap.getBoundingClientRect();
+  let tx=evt.clientX-r.left+14,ty=evt.clientY-r.top-14;
+  if(tx>r.width-225)tx=evt.clientX-r.left-225;if(ty<0)ty=4;
+  const ct=document.getElementById('city-tip');ct.style.left=tx+'px';ct.style.top=ty+'px';ct.style.display='block';
+}
+
+function showTip(evt,dist,state){
+  const d=getD(dist,state);
+  document.getElementById('tn').textContent=dist||'—';
+  document.getElementById('ts').textContent=state+(d.typo?' · '+d.typo.replace('_',' ')+' zone':'');
+  const vals=[d.t,d.a,d.i,d.r,d.m,d.h];
+  [1,2,3,4,5,6].forEach(n=>{const el=document.getElementById('tv'+n);el.textContent=FMTS[n-1](vals[n-1]);el.style.color=CFNS[n-1](vals[n-1]);document.getElementById('tr'+n).classList.toggle('tip-act',MODES[n-1]===mode);});
+  document.getElementById('td1').style.background=tC(d.t);document.getElementById('td4').style.background=rC(d.r);
+  document.getElementById('tc').style.display=d.compound?'block':'none';
+  const wrap=document.getElementById('mapcol');const r=wrap.getBoundingClientRect();
+  let tx=evt.clientX-r.left+13,ty=evt.clientY-r.top-10;
+  if(tx>r.width-240)tx=evt.clientX-r.left-240;if(ty<0)ty=4;
+  const tip=document.getElementById('tip');tip.style.left=tx+'px';tip.style.top=ty+'px';tip.style.display='block';
+}
+
+function showPanel(dist,state){
+  const d=getD(dist,state);const sd=SD[state]||d;
+  document.getElementById('d-hint').style.display='none';document.getElementById('d-content').style.display='block';
+  document.getElementById('dp').textContent=dist+(state&&state!==dist?' · '+state:'');
+  document.getElementById('dt').textContent=d.tp||'—';
+  document.getElementById('d-prov').textContent='State baseline + '+d.typo.replace('_',' ')+' typology'+(d.dist_note?' · '+d.dist_note:'');
+  const ki=MODES.indexOf(mode);const vals={temp:d.t,agri:d.a,infl:d.i,res:d.r,mgnregs:d.m,heat:d.h};const v=vals[mode];
+  document.getElementById('dbig').textContent=FMTS[ki](v);document.getElementById('dbig').style.color=CFNS[ki](v);
+  document.getElementById('d-ci').textContent=Object.values(CI_VALS)[ki];
+  document.getElementById('compound-badge').innerHTML=d.compound?'<span class="compound-badge">⚠ Compound flood-drought risk</span>':'';
+  document.getElementById('bars-grid').innerHTML=MODES.map((md,idx)=>{const v2=vals[md];const c=CFNS[idx](v2);return`<div class="bar-cell"><div class="bc-lbl">${ICONS[idx]} ${LBLS[idx]}</div><div class="bc-val" style="color:${c}">${FMTS[idx](v2)}<span class="bc-ci">${Object.values(CI_VALS)[idx]}</span></div><div class="bc-track"><div class="bc-bar" style="width:${BWF[idx](v2)};background:${c}"></div></div></div>`;}).join('');
+  const tags=[];
+  if(d.t>=45)tags.push(['Extreme heat','tgr']);else if(d.t>=42)tags.push(['Severe heat','tga']);
+  if(d.a>=80)tags.push(['Agri critical','tgr']);else if(d.a>=65)tags.push(['Agri high','tga']);
+  if(d.r<=25)tags.push(['Reservoir emergency','tgr']);else if(d.r<=40)tags.push(['Reservoir low','tga']);
+  if(d.m>=80)tags.push(['MGNREGS crisis','tgr']);else if(d.m>=60)tags.push(['MGNREGS distress','tga']);
+  if(d.h>=40)tags.push(['Health emergency','tgr']);
+  if(d.compound)tags.push(['⚠ Compound risk','tgy']);
+  if(!tags.length)tags.push(['Moderate exposure','tgg']);
+  document.getElementById('dtags').innerHTML=tags.map(([l,c])=>`<span class="tg ${c}">${l}</span>`).join('');
+  document.getElementById('dnote').textContent=sd.n||d.n;
+}
+
+function drawFeats(g,feats,pfn){
+  feats.forEach(f=>{
+    const dn=dN(f.properties),sn=sN(f.properties);
+    g.append('path').datum(f).attr('d',pfn).attr('fill',fillF(dn,sn)).attr('class','dp').attr('data-dist',dn).attr('data-state',sn)
+      .on('mousemove',function(evt){if(!pinned){hideCityTip();showTip(evt,dn,sn);showPanel(dn,sn);}})
+      .on('mouseleave',()=>{if(!pinned)document.getElementById('tip').style.display='none';})
+      .on('click',function(){if(pinEl)d3.select(pinEl).classed('sel',false);if(pinEl===this){pinned=false;pinEl=null;document.getElementById('tip').style.display='none';return;}pinned=true;pinEl=this;d3.select(this).classed('sel',true);showPanel(dn,sn);document.getElementById('tip').style.display='none';});
+  });
+}
+function drawBorders(svg,feats,pfn){
+  const fc={type:'FeatureCollection',features:feats};
+  svg.append('path').attr('d',pfn(fc)).attr('fill','none').attr('stroke','rgba(255,255,255,.62)').attr('stroke-width',1).attr('pointer-events','none');
+  svg.append('path').attr('d',pfn(fc)).attr('fill','none').attr('stroke','rgba(20,20,20,.55)').attr('stroke-width',1.8).attr('pointer-events','none');
+}
+
+/* City dot rendering — mode-aware color fill */
+function updateCityDots(proj){
+  d3.selectAll('.city-dot').attr('fill',function(){
+    const s=this.dataset.state||'';const d=getD(this.dataset.city||'',s);
+    return CFNS[MODES.indexOf(mode)](d[KEYS[MODES.indexOf(mode)]]);
+  });
+}
+
+function addCityLayer(svg,proj){
+  const cityG=svg.append('g').attr('class','city-layer');
+  CITIES.forEach(([name,lat,lon,state,pop,note])=>{
+    const pt=proj([lon,lat]);if(!pt||isNaN(pt[0])||isNaN(pt[1]))return;
+    const[cx,cy]=pt;
+    const r=Math.max(3.5,Math.min(7,Math.sqrt(pop)*1.4));
+    const d=getD(name,state);
+    const fillC=CFNS[MODES.indexOf(mode)](d[KEYS[MODES.indexOf(mode)]]);
+    cityG.append('circle')
+      .attr('cx',cx).attr('cy',cy).attr('r',r)
+      .attr('fill',fillC).attr('stroke','rgba(20,20,20,.75)').attr('stroke-width',1.2)
+      .attr('class','city-dot dp').attr('data-city',name).attr('data-state',state)
+      .style('cursor','pointer')
+      .on('mousemove',evt=>{hideTip();showCityTip(evt,name,state,pop,note);showPanel(name,state);})
+      .on('mouseleave',()=>{hideCityTip();})
+      .on('click',evt=>{evt.stopPropagation();pinned=true;showPanel(name,state);hideCityTip();});
+    if(pop>=5){
+      cityG.append('text').attr('x',cx+r+3).attr('y',cy+4).attr('font-size',8).attr('font-weight',600).attr('fill','rgba(20,20,20,.78)').attr('pointer-events','none').text(name);
+    }
+  });
+  mainProjG=proj;
+}
+function hideTip(){document.getElementById('tip').style.display='none';}
+
+/* ── INSET with corrected geographic connector ── */
+function drawInset(svg,feats,box,title,stateKey,hasBndry,proj){
+  const{x,y,w,h}=box;
+  svg.append('rect').attr('x',x).attr('y',y).attr('width',w).attr('height',h).attr('fill','#C8E8F5').attr('stroke','rgba(20,20,20,.3)').attr('stroke-width',.8).attr('rx',4);
+  for(let iy=y+8;iy<y+h-4;iy+=9)
+    svg.append('line').attr('x1',x+4).attr('y1',iy).attr('x2',x+w-4).attr('y2',iy).attr('stroke','rgba(150,210,240,.18)').attr('stroke-width',.5).attr('pointer-events','none');
+  if(hasBndry&&feats.length>0){
+    const iproj=d3.geoMercator().fitExtent([[x+5,y+20],[x+w-5,y+h-28]],{type:'FeatureCollection',features:feats});
+    const p=d3.geoPath(iproj);drawFeats(svg.append('g'),feats,p);drawBorders(svg,feats,p);
+  } else {
+    const isAN=/andaman/i.test(stateKey);const fc=fillF(stateKey,stateKey);
+    if(isAN){
+      [[.42,.12,22,10,'N. Andaman'],[.45,.43,24,12,'S. Andaman'],[.5,.76,17,8,'Nicobar']].forEach(([rx,ry,rw,rh,lbl])=>{
+        const cx=x+5+rx*(w-10),cy=y+20+ry*(h-46);
+        svg.append('ellipse').attr('cx',cx).attr('cy',cy).attr('rx',rw).attr('ry',rh).attr('fill',fc).attr('stroke','rgba(20,20,20,.4)').attr('stroke-width',.7).attr('class','dp').attr('data-dist',lbl).attr('data-state','Andaman and Nicobar Islands')
+          .on('mousemove',evt=>{if(!pinned){hideCityTip();showTip(evt,lbl,'Andaman and Nicobar Islands');}})
+          .on('mouseleave',()=>{if(!pinned)document.getElementById('tip').style.display='none';})
+          .on('click',()=>{pinned=true;if(pinEl)d3.select(pinEl).classed('sel',false);pinEl=null;showPanel(lbl,'Andaman and Nicobar Islands');document.getElementById('tip').style.display='none';});
+        svg.append('text').attr('x',cx).attr('y',cy+1).attr('text-anchor','middle').attr('font-size',6.5).attr('fill','rgba(255,255,255,.9)').attr('pointer-events','none').text(lbl);
+      });
+    } else {
+      [[.28,.25],[.54,.18],[.6,.44],[.42,.57],[.25,.68],[.65,.72]].forEach(([rx,ry])=>{
+        const cx=x+6+rx*(w-12),cy=y+22+ry*(h-50);
+        svg.append('ellipse').attr('cx',cx).attr('cy',cy).attr('rx',7).attr('ry',4.5).attr('fill',fc).attr('stroke','rgba(20,20,20,.4)').attr('stroke-width',.7).attr('class','dp').attr('data-dist','Lakshadweep Islands').attr('data-state','Lakshadweep')
+          .on('mousemove',evt=>{if(!pinned){hideCityTip();showTip(evt,'Lakshadweep Islands','Lakshadweep');}})
+          .on('mouseleave',()=>{if(!pinned)document.getElementById('tip').style.display='none';})
+          .on('click',()=>{pinned=true;if(pinEl)d3.select(pinEl).classed('sel',false);pinEl=null;showPanel('Lakshadweep','Lakshadweep');document.getElementById('tip').style.display='none';});
+      });
+    }
+  }
+  svg.append('text').attr('x',x+w/2).attr('y',y+13).attr('text-anchor','middle').attr('font-size',9).attr('font-weight',700).attr('fill','rgba(10,50,110,.78)').attr('pointer-events','none').text(title);
+  const subEl=svg.append('text').attr('x',x+w/2).attr('y',y+h-13).attr('text-anchor','middle').attr('font-size',7.5).attr('fill','rgba(10,50,110,.62)').attr('pointer-events','none').text(insetSub(stateKey));
+  insetSubEls[stateKey]=subEl;
+  svg.append('text').attr('x',x+w/2).attr('y',y+h-3).attr('text-anchor','middle').attr('font-size',7.5).attr('font-weight',600).attr('fill','rgba(80,40,20,.65)').attr('pointer-events','none').text('Not to scale');
+
+  /* ── CORRECTED connector using actual projection coordinates ── */
+  const geoCoords={'Lakshadweep':[72.64,10.56],'Andaman and Nicobar Islands':[92.74,11.67]}[stateKey];
+  if(geoCoords&&proj){
+    const dot=proj(geoCoords);
+    if(dot&&!isNaN(dot[0])&&!isNaN(dot[1])){
+      const[dcx,dcy]=dot;
+      const fromX=stateKey==='Lakshadweep'?x+w:x;
+      const fromY=y+h/2;
+      /* Dashed connector line */
+      svg.append('line').attr('x1',fromX).attr('y1',fromY).attr('x2',dcx).attr('y2',dcy)
+        .attr('stroke','rgba(20,20,20,.28)').attr('stroke-width',.9).attr('stroke-dasharray','5,3').attr('pointer-events','none');
+      /* Outer ring */
+      svg.append('circle').attr('cx',dcx).attr('cy',dcy).attr('r',7)
+        .attr('fill','rgba(190,232,255,.85)').attr('stroke','rgba(20,20,20,.45)').attr('stroke-width',1).attr('pointer-events','none');
+      /* Inner dot */
+      svg.append('circle').attr('cx',dcx).attr('cy',dcy).attr('r',3)
+        .attr('fill','rgba(20,20,20,.6)').attr('pointer-events','none');
+      /* Crosshair horizontal */
+      svg.append('line').attr('x1',dcx-11).attr('y1',dcy).attr('x2',dcx+11).attr('y2',dcy)
+        .attr('stroke','rgba(20,20,20,.5)').attr('stroke-width',.9).attr('pointer-events','none');
+      /* Crosshair vertical */
+      svg.append('line').attr('x1',dcx).attr('y1',dcy-11).attr('x2',dcx).attr('y2',dcy+11)
+        .attr('stroke','rgba(20,20,20,.5)').attr('stroke-width',.9).attr('pointer-events','none');
+      /* Location label */
+      const label={'Lakshadweep':'Kavaratti ~10.5°N 72.6°E','Andaman and Nicobar Islands':'Port Blair ~11.7°N 92.7°E'}[stateKey];
+      const lx2=stateKey==='Lakshadweep'?dcx+14:dcx+14;
+      svg.append('text').attr('x',lx2).attr('y',dcy-2).attr('font-size',7).attr('font-weight',600).attr('fill','rgba(10,50,110,.75)').attr('pointer-events','none').text(label);
+    }
+  }
+}
+
+const SRCS=[
+  'https://www.geoboundaries.org/api/current/gbOpen/IND/ADM2/',
+  'https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@main/topojson/india.json',
+  'https://cdn.jsdelivr.net/gh/geohacker/india@master/district/india_district.json',
+];
+async function loadJ(u){const r=await fetch(u,{mode:'cors'});if(!r.ok)throw new Error(r.status);return r.json();}
+async function getFeats(){
+  for(const u of SRCS){
+    try{
+      document.getElementById('lmsg').textContent='Fetching from '+u.split('/').slice(2,4).join('/')+'…';
+      const raw=await loadJ(u);
+      if(raw.gjDownloadURL){document.getElementById('lmsg').textContent='Downloading geoBoundaries IND ADM2…';const gj=await loadJ(raw.gjDownloadURL);if(gj.features?.length>10)return gj.features;}
+      if(raw.type==='Topology'){const k=Object.keys(raw.objects).find(k=>/dist/i.test(k))||Object.keys(raw.objects)[0];return topojson.feature(raw,raw.objects[k]).features;}
+      if(raw.type==='FeatureCollection'&&raw.features?.length>10)return raw.features;
+    }catch(e){console.warn('skip',u,e.message);}
+  }
+  return null;
+}
+
+(async()=>{
+  const all=await getFeats();
+  document.getElementById('loader').style.display='none';
+  if(!all){const eb=document.getElementById('errbox');eb.style.display='flex';eb.innerHTML='<strong>Boundary data unavailable</strong><br><small>All CDN sources unreachable. Try reloading.</small>';return;}
+  const isLD=f=>/lakshadweep/i.test(sN(f.properties))||sN(f.properties)==='LD';
+  const isAN=f=>/andaman/i.test(sN(f.properties))||sN(f.properties)==='AN';
+  const main=all.filter(f=>!isLD(f)&&!isAN(f));
+  const ld=all.filter(isLD),an=all.filter(isAN);
+  const hasLD=ld.length>0,hasAN=an.length>0;
+  const W=940,H=820;
+  const svg=d3.select('#msvg');svgG=svg;
+  svg.append('rect').attr('x',0).attr('y',0).attr('width',W).attr('height',H).attr('fill','#C8E8F5');
+  for(let iy=18;iy<H;iy+=15)
+    svg.append('line').attr('x1',0).attr('y1',iy).attr('x2',W).attr('y2',iy).attr('stroke','rgba(150,210,240,.13)').attr('stroke-width',.5).attr('pointer-events','none');
+  const mp=d3.geoMercator().fitExtent([[26,50],[760,790]],{type:'FeatureCollection',features:main});
+  const mpfn=d3.geoPath(mp);
+  drawFeats(svg.append('g'),main,mpfn);
+  drawBorders(svg,main,mpfn);
+  addCityLayer(svg,mp);
+  /* Insets with projection passed for corrected connectors */
+  drawInset(svg,ld,{x:12,y:618,w:168,h:184},'Lakshadweep (UT)','Lakshadweep',hasLD,mp);
+  drawInset(svg,an,{x:768,y:368,w:162,h:424},'Andaman & Nicobar (UT)','Andaman and Nicobar Islands',hasAN,mp);
+  /* Ocean labels */
+  [[115,706,'ARABIAN SEA','SST +1.5–1.8°C · NOAA CPC · Lin et al. 2023 GRL'],
+   [618,762,'BAY OF BENGAL','SST +1.2–1.5°C · INCOIS 2026 · MHW +40 days'],
+   [430,808,'INDIAN OCEAN','SST +1.0–1.3°C · NOAA CPC · Warm pool expanding'],
+  ].forEach(([x,y,l1,l2])=>{
+    svg.append('text').attr('x',x).attr('y',y).attr('text-anchor','middle').attr('font-size',11).attr('font-weight',700).attr('fill','rgba(10,60,130,.68)').attr('letter-spacing',1.5).attr('pointer-events','none').text(l1);
+    svg.append('text').attr('x',x).attr('y',y+13).attr('text-anchor','middle').attr('font-size',8.5).attr('font-weight',600).attr('fill','rgba(180,40,20,.78)').attr('pointer-events','none').text(l2);
+  });
+  rebuildCanvasLeg(svg);
+  svg.append('text').attr('x',W/2).attr('y',H-3).attr('text-anchor','middle').attr('font-size',8.5).attr('font-style','italic').attr('fill','rgba(0,0,0,.35)').attr('pointer-events','none')
+    .text('India El Niño 2027 Policy Readiness Dashboard v2 · State data · District typology variance · CMIP6 ±CI · Island insets not to scale · Crosshairs = geographic position · geoBoundaries ADM2 CC-BY 4.0');
+  document.getElementById('msvg').style.display='block';
+  document.getElementById('foot').textContent=
+    'Policy Readiness Dashboard v2 · '+
+    (hasLD?'✓ Lakshadweep polygon · crosshair at 10.5°N 72.6°E':'✓ Lakshadweep placeholder · crosshair at 10.5°N 72.6°E')+
+    ' · '+(hasAN?'✓ A&N polygon · crosshair at 11.7°N 92.7°E':'✓ A&N placeholder · crosshair at 11.7°N 92.7°E')+
+    ' · NOAA CPC · Lin et al. 2023 GRL · INCOIS 2026 · IMD · CWC · CGWB · geoBoundaries ADM2 CC-BY 4.0';
+})();
+</script>
+</body>
+</html>
